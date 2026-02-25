@@ -13,6 +13,7 @@ class Plan extends Model
         'asaas_id',
         'price',
         'max_projects',
+        'billing_cycle',
         'features_json',
     ];
 

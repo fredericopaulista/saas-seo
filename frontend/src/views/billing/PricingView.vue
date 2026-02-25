@@ -41,7 +41,17 @@ const subscribe = async (planId: number) => {
         alert(e.response?.data?.message || 'Falha ao processar assinatura.')
     } finally {
         subscribingTo.value = null
+}
+
+const translateCycle = (cycle: string) => {
+    const map: Record<string, string> = {
+        'MONTHLY': 'mês',
+        'BIMONTHLY': 'bimestre',
+        'QUARTERLY': 'trimestre',
+        'SEMIANNUALLY': 'semestre',
+        'YEARLY': 'ano'
     }
+    return map[cycle] || 'mês'
 }
 </script>
 
@@ -68,7 +78,7 @@ const subscribe = async (planId: number) => {
             <h3 class="text-2xl font-bold mb-2">{{ plan.name }}</h3>
             <div class="flex items-baseline gap-1 mb-6">
                 <span class="text-4xl font-bold">R$ {{ plan.price }}</span>
-                <span class="text-gray-400">/mês</span>
+                <span class="text-gray-400">/{{ translateCycle(plan.billing_cycle) }}</span>
             </div>
             
             <p class="text-sm text-gray-400 mb-6">Limite de {{ plan.max_projects }} propriedades do GSC indexadas simultâneamente.</p>

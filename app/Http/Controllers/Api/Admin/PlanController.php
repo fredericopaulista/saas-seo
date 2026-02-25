@@ -26,6 +26,7 @@ class PlanController extends Controller
             'slug' => 'required|string|unique:plans,slug',
             'price' => 'required|numeric|min:0',
             'max_projects' => 'required|integer|min:1',
+            'billing_cycle' => 'required|string|in:MONTHLY,BIMONTHLY,QUARTERLY,SEMIANNUALLY,YEARLY',
             'asaas_id' => 'nullable|string',
             'features_json' => 'nullable|array'
         ]);
@@ -52,6 +53,7 @@ class PlanController extends Controller
             'slug' => 'sometimes|string|unique:plans,slug,' . $plan->id,
             'price' => 'sometimes|numeric|min:0',
             'max_projects' => 'sometimes|integer|min:1',
+            'billing_cycle' => 'sometimes|string|in:MONTHLY,BIMONTHLY,QUARTERLY,SEMIANNUALLY,YEARLY',
             'asaas_id' => 'nullable|string',
             'features_json' => 'nullable|array'
         ]);

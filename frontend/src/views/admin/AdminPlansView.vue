@@ -33,6 +33,7 @@ const openCreateModal = () => {
         slug: '',
         price: 0,
         max_projects: 1,
+        billing_cycle: 'MONTHLY',
         features_json: []
     }
     showModal.value = true
@@ -100,7 +101,7 @@ const deletePlan = async (id: number) => {
         <div v-for="plan in plans" :key="plan.id" class="bg-gray-900 border border-gray-800 rounded-xl p-6 relative">
           <div class="flex justify-between items-start mb-4">
             <h3 class="font-bold text-lg text-white">{{ plan.name }}</h3>
-            <span class="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">R$ {{ plan.price }}</span>
+            <span class="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">R$ {{ plan.price }} / {{ plan.billing_cycle }}</span>
           </div>
           <div class="text-sm text-gray-500 mb-6">Slug: {{ plan.slug }}</div>
           
@@ -138,6 +139,16 @@ const deletePlan = async (id: number) => {
                         <label class="block text-sm font-medium text-gray-400 mb-1">Max Projetos</label>
                         <input v-model="currentPlan.max_projects" type="number" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white outline-none focus:border-indigo-500" />
                     </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Ciclo de Cobrança</label>
+                    <select v-model="currentPlan.billing_cycle" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white outline-none focus:border-indigo-500">
+                        <option value="MONTHLY">Mensal</option>
+                        <option value="BIMONTHLY">Bimestral</option>
+                        <option value="QUARTERLY">Trimestral</option>
+                        <option value="SEMIANNUALLY">Semestral</option>
+                        <option value="YEARLY">Anual</option>
+                    </select>
                 </div>
             </div>
 
