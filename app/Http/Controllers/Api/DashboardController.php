@@ -61,6 +61,26 @@ class DashboardController extends Controller
             'avg_ctr' => $dailyMetrics->avg('avg_ctr'),
             'avg_position' => $dailyMetrics->avg('avg_position'),
         ];
+        
+        // Fetch previous period for percentage calculation
+        $daysDiff = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) ?: 30;
+        $prevStartDate = \Carbon\Carbon::parse($startDate)->subDays($daysDiff)->toDateString();
+        $prevEndDate = \Carbon\Carbon::parse($startDate)->subDay()->toDateString();
+        
+        $prevMetrics = $project->performanceData()
+            ->whereBetween('date', [$prevStartDate, $prevEndDate])
+            ->selectRaw('SUM(clicks) as total_clicks')
+            ->first();
+            
+        $prevClicks = $prevMetrics ? $prevMetrics->total_clicks : 0;
+        $clickDiffPercentage = 0;
+        if ($prevClicks > 0) {
+            $clickDiffPercentage = (($totals['clicks'] - $prevClicks) / $prevClicks) * 100;
+        } elseif ($totals['clicks'] > 0) {
+            $clickDiffPercentage = 100; // From 0 to something is 100% growth essentially
+        }
+        
+        $totals['click_diff_percentage'] = round($clickDiffPercentage, 1);
 
         return response()->json([
             'date_range' => ['start' => $startDate, 'end' => $endDate],

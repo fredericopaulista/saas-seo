@@ -253,9 +253,11 @@ const forceUrlInspection = async () => {
                     <span class="text-4xl font-black text-white drop-shadow-lg tabular-nums">
                       {{ performanceData?.clicks?.toLocaleString() || 0 }}
                     </span>
-                    <div class="mt-3 flex items-center text-xs text-emerald-400 font-medium bg-emerald-400/10 w-fit px-2 py-1 rounded-md border border-emerald-400/20">
-                        <TrendingUp class="w-3.5 h-3.5 mr-1" />
-                        +14% vs. Mês Anterior
+                    <div class="mt-3 flex items-center text-xs font-medium w-fit px-2 py-1 rounded-md border"
+                         :class="performanceData?.click_diff_percentage >= 0 ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-red-400 bg-red-400/10 border-red-400/20'">
+                        <TrendingUp v-if="performanceData?.click_diff_percentage >= 0" class="w-3.5 h-3.5 mr-1" />
+                        <Activity v-else class="w-3.5 h-3.5 mr-1" />
+                        {{ performanceData?.click_diff_percentage > 0 ? '+' : '' }}{{ performanceData?.click_diff_percentage || 0 }}% vs. Mês Anterior
                     </div>
                 </div>
             </div>
