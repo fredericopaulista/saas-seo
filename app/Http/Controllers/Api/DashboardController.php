@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
-use App\Jobs\ProcessProjectGSCData;
+use App\Jobs\SyncProjectDataJob;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -92,7 +92,7 @@ class DashboardController extends Controller
     public function triggerSync(Request $request, Project $project)
     {
         // Add auth constraints here based on Tenant
-        ProcessProjectGSCData::dispatch($project);
+        SyncProjectDataJob::dispatch($project);
 
         return response()->json([
             'message' => 'Sincronização agendada na fila com sucesso. Os dados devem aparecer em alguns minutos.'
