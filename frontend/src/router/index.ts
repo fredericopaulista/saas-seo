@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth'
 import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminTenantsView from '../views/admin/AdminTenantsView.vue'
+import AdminPlansView from '../views/admin/AdminPlansView.vue'
 import AdminBillingView from '../views/admin/AdminBillingView.vue'
 import AdminSystemView from '../views/admin/AdminSystemView.vue'
 
@@ -45,6 +46,11 @@ const router = createRouter({
           path: 'tenants', // /admin/tenants
           name: 'admin-tenants',
           component: AdminTenantsView,
+        },
+        {
+          path: 'plans', // /admin/plans
+          name: 'admin-plans',
+          component: AdminPlansView,
         },
         {
           path: 'billing', // /admin/billing

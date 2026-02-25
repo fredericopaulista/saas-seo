@@ -56,8 +56,8 @@ const formatCurrency = (val: number) => {
         </div>
       </div>
 
-       <!-- ARR Card -->
-       <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 relative flex flex-col justify-between">
+      <!-- ARR Card -->
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 relative flex flex-col justify-between">
         <div class="flex items-center space-x-4 mb-4">
           <div class="p-3 bg-purple-500/10 text-purple-500 rounded-lg">
             <Activity class="w-6 h-6" />

@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('admin')->middleware(['auth:admin', 'admin.permission'])->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'admin.permission'])->group(function () {
     Route::get('/dashboard', function (\App\Services\Admin\AdminDashboardService $service) {
         return response()->json($service->getExecutiveSummary());
     });
@@ -23,4 +23,7 @@ Route::prefix('admin')->middleware(['auth:admin', 'admin.permission'])->group(fu
     
     // Impersonate Tenant
     Route::post('/tenants/{id}/impersonate', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'impersonate']);
+
+    // Plans CRUD
+    Route::apiResource('/plans', \App\Http\Controllers\Api\Admin\PlanController::class);
 });

@@ -15,7 +15,7 @@ class AdminPermissionMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth('admin')->check()) {
+        if (!auth()->check() || !auth()->user()->hasRole('super-admin')) {
             return response()->json(['message' => 'Unauthorized Admin'], 403);
         }
         

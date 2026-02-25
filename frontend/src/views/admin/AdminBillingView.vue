@@ -55,22 +55,6 @@ const statusIcon = (status: string) => {
     </div>
 
     <template v-else>
-      <!-- Plans Active Subscriptions -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div v-for="plan in payload.plans" :key="plan.id" class="bg-gray-900 border border-gray-800 rounded-xl p-6 relative overflow-hidden">
-          <div class="flex justify-between items-start mb-4">
-            <h3 class="font-bold text-lg text-white">{{ plan.name }}</h3>
-            <span class="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">R$ {{ plan.price }}</span>
-          </div>
-          <div class="mt-4">
-            <div class="text-3xl font-bold text-indigo-400">{{ plan.subscriptions_count }}</div>
-            <p class="text-sm text-gray-500">Assinaturas Ativas</p>
-          </div>
-          <div class="absolute -bottom-4 -right-4 opacity-5">
-            <CreditCard class="w-32 h-32" />
-          </div>
-        </div>
-      </div>
 
       <!-- Recent Subscriptions Ledger -->
       <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mt-8">

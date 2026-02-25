@@ -35,9 +35,14 @@ const logout = async () => {
           <span>Gestão de Tenants</span>
         </router-link>
 
+        <router-link to="/admin/plans" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" active-class="bg-gray-800 text-white border-l-4 border-red-500">
+          <CreditCard class="w-5 h-5 opacity-70" />
+          <span>Planos Ativos</span>
+        </router-link>
+
         <router-link to="/admin/billing" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" active-class="bg-gray-800 text-white border-l-4 border-red-500">
-          <CreditCard class="w-5 h-5" />
-          <span>Planos e Faturamento</span>
+          <CreditCard class="w-5 h-5 text-indigo-400" />
+          <span>Faturas Gateway</span>
         </router-link>
 
         <router-link to="/admin/system" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" active-class="bg-gray-800 text-white border-l-4 border-red-500">
