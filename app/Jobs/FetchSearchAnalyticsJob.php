@@ -47,6 +47,8 @@ class FetchSearchAnalyticsJob implements ShouldQueue, TenantAware
             // Note: Google recommends small chunks. For MVP, we pass the large date range. 
             // In Production, chunk by day: `for ($d = 2; $d <= $retentionDays; $d++)`
             $rows = $gscService->fetchSearchAnalytics($startDate, $endDate);
+            
+            Log::info("GSC API returned " . count($rows) . " rows for project {$this->project->id}");
 
             $upsertData = [];
             foreach ($rows as $row) {

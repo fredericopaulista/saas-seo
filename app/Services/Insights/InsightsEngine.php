@@ -81,6 +81,8 @@ EOT;
                 ],
                 'temperature' => 0.4,
             ]);
+            
+            Log::info("Insights Engine: Successfully received response from OpenAI for project {$project->id}");
 
             $content = trim($response->choices[0]->message->content);
             
@@ -92,6 +94,11 @@ EOT;
             } else {
                 // Fallback to decode the whole content if regex fails
                 $parsedInsights = json_decode($content, true);
+            }
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::error("Insights Engine JSON Decode Error for project {$project->id}: " . json_last_error_msg());
+                Log::error("Raw OpenAI output was: " . $content);
             }
 
             if (is_array($parsedInsights)) {
