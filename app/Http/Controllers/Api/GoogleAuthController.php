@@ -45,8 +45,10 @@ class GoogleAuthController extends Controller
     public function callback(Request $request)
     {
         try {
+            $frontendUrl = env('FRONTEND_URL', 'https://advogados.emp.br');
+
             if ($request->has('error')) {
-                return response()->json(['error' => 'User denied the request or an error occurred during Google OAuth.'], 403);
+                return redirect()->away($frontendUrl . '/dashboard/projects?error=google_oauth_denied');
             }
 
             // Restore state manually or from request
@@ -55,7 +57,7 @@ class GoogleAuthController extends Controller
             $tenantId = $stateData['tenant_id'] ?? null;
 
             if (! $projectId || ! $tenantId) {
-                return response()->json(['error' => 'Invalid state. Project ID or Tenant ID missing.'], 400);
+                return redirect()->away($frontendUrl . '/dashboard/projects?error=invalid_state');
             }
 
             // Temporarily set the tenant for this stateless request to save the token properly
@@ -66,7 +68,7 @@ class GoogleAuthController extends Controller
             $project = Project::find($projectId);
 
             if (! $project) {
-                return response()->json(['error' => 'Project not found.'], 404);
+                return redirect()->away($frontendUrl . '/dashboard/projects?error=project_not_found');
             }
 
             // Encrypting tokens and storing
@@ -80,14 +82,12 @@ class GoogleAuthController extends Controller
                 ]
             );
 
-            return response()->json([
-                'message' => 'Google Search Console account connected successfully.',
-                'project_id' => $project->id
-            ], 200);
+            return redirect()->away($frontendUrl . '/dashboard/projects/' . $project->id . '?success=google_connected');
 
         } catch (Exception $e) {
             Log::error('Google OAuth Callback Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return response()->json(['error' => 'An error occurred while connecting the account.'], 500);
+            $frontendUrl = env('FRONTEND_URL', 'https://advogados.emp.br');
+            return redirect()->away($frontendUrl . '/dashboard/projects?error=oauth_exception');
         }
     }
 }
