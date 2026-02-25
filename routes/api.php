@@ -11,12 +11,15 @@ Route::get('/user', function (Request $request) {
 
 // Using simple group without full auth to simplify boilerplate for MVP demonstration
 // Replace with middleware('auth:sanctum') in secure production wrapper
+
+// Projects Management
+// Using apiResource creates GET /projects, POST /projects, DELETE /projects/{project} etc.
+Route::apiResource('/projects', \App\Http\Controllers\Api\ProjectController::class);
+
 Route::prefix('dashboard')->group(function () {
-    Route::get('/projects', [DashboardController::class, 'projects']);
     Route::get('/projects/{project}/overview', [DashboardController::class, 'overview']);
     Route::get('/projects/{project}/performance', [DashboardController::class, 'performance']);
     Route::get('/projects/{project}/insights', [DashboardController::class, 'insights']);
-    Route::post('/projects/{project}/insights/{insight}/resolve', [DashboardController::class, 'resolveInsight']);
     Route::get('/projects/{project}/urls', [DashboardController::class, 'urls']);
     Route::post('/projects/{project}/sync', [DashboardController::class, 'triggerSync']);
     Route::post('/projects/{project}/inspect-urls', [DashboardController::class, 'triggerUrlInspection']);

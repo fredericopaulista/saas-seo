@@ -10,6 +10,16 @@ use Illuminate\Http\Request;
 class DashboardController extends Controller
 {
     /**
+     * Get all projects for the current tenant.
+     */
+    public function projects(Request $request)
+    {
+        // Add auth filtering by tenant later
+        $projects = Project::all();
+        return response()->json($projects);
+    }
+    
+    /**
      * Get high-level overview of the selected project (SEO Score, URL counts).
      */
     public function overview(Request $request, Project $project)
