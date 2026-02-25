@@ -33,8 +33,19 @@ const impersonate = async (tenantId: number) => {
         await authStore.fetchUser()
         
         router.push('/dashboard')
-    } catch (e) {
-        alert('Impersonation Failed')
+    } catch (e: any) {
+        alert(e.response?.data?.message || 'Falha ao tentar logar como este Inquilino. Ele possui usuários registrados?')
+    }
+}
+
+const toggleStatus = async (tenant: any) => {
+    if (confirm(`Tem certeza que deseja ${tenant.is_active ? 'suspender' : 'reativar'} o workspace ${tenant.name}?`)) {
+        try {
+            const { data } = await api.put(`/admin/tenants/${tenant.id}/toggle-status`)
+            tenant.is_active = data.is_active
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Falha ao alterar status.')
+        }
     }
 }
 </script>
@@ -74,8 +85,9 @@ const impersonate = async (tenantId: number) => {
                 </div>
                 <span>{{ tenant.name }}</span>
             </td>
-            <td class="py-4 px-6 text-gray-400">
-               <span class="bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs">Ativo</span>
+            <td class="py-4 px-6">
+               <span v-if="tenant.is_active" class="bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs">Ativo</span>
+               <span v-else class="bg-red-500/10 text-red-500 px-2 py-1 rounded text-xs">Suspenso</span>
             </td>
             <td class="py-4 px-6 text-gray-400">
                 12 Fev, 2026
@@ -84,7 +96,7 @@ const impersonate = async (tenantId: number) => {
                 <button @click="impersonate(tenant.id)" title="Acessar como Inquilino" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition">
                     <LogIn class="w-5 h-5" />
                 </button>
-                <button title="Suspender" class="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-gray-700 transition ml-2">
+                <button @click="toggleStatus(tenant)" :title="tenant.is_active ? 'Suspender' : 'Reativar'" :class="[tenant.is_active ? 'hover:text-red-500' : 'hover:text-green-500']" class="text-gray-400 p-2 rounded-lg hover:bg-gray-700 transition ml-2">
                     <ShieldAlert class="w-5 h-5" />
                 </button>
             </td>

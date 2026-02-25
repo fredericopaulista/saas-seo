@@ -13,8 +13,8 @@ class ImpersonationController extends Controller
     {
         $tenant = Tenant::findOrFail($tenantId);
         
-        // Find owner or top user to jump into their context
-        $user = User::where('tenant_id', $tenant->id)->first();
+        // Find owner or top user to jump into their context using Many-to-Many pivot
+        $user = $tenant->users()->first();
         if (!$user) {
             return response()->json(['message' => 'No active user found for this tenant'], 404);
         }

@@ -24,6 +24,13 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.permission'])->group(
     // Impersonate Tenant
     Route::post('/tenants/{id}/impersonate', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'impersonate']);
 
+    // Toggle Tenant status
+    Route::put('/tenants/{id}/toggle-status', function ($id) {
+        $tenant = \App\Models\Tenant::findOrFail($id);
+        $tenant->update(['is_active' => !$tenant->is_active]);
+        return response()->json(['message' => 'Status updated successfully', 'is_active' => $tenant->is_active]);
+    });
+
     // Plans CRUD
     Route::apiResource('/plans', \App\Http\Controllers\Api\Admin\PlanController::class);
 

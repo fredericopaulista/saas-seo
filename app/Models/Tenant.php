@@ -8,7 +8,7 @@ class Tenant extends SpatieTenant
 {
     protected $table = 'tenants';
 
-    protected $fillable = ['name', 'domain'];
+    protected $fillable = ['name', 'domain', 'is_active'];
 
     public function users()
     {

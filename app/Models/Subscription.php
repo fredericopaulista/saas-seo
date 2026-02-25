@@ -10,6 +10,7 @@ class Subscription extends Model
     use BelongsToTenant;
 
     protected $fillable = [
+        'tenant_id',
         'stripe_id',
         'asaas_subscription_id',
         'status_gateway',

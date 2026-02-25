@@ -14,6 +14,9 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->name('auth.me');
         Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->name('auth.logout');
+        
+        // Projects Management
+        Route::apiResource('/projects', \App\Http\Controllers\Api\ProjectController::class);
     });
 
     // Google OAuth
