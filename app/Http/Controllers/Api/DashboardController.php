@@ -105,6 +105,25 @@ class DashboardController extends Controller
             'insights' => $insights
         ]);
     }
+
+    /**
+     * Mark an insight as resolved.
+     */
+    public function resolveInsight(Request $request, Project $project, \App\Models\Insight $insight)
+    {
+        // Add auth check here if using Sanctum
+        if ($insight->project_id !== $project->id) {
+            return response()->json(['error' => 'Insight does not belong to this project'], 403);
+        }
+
+        $insight->update([
+            'resolved_at' => now()
+        ]);
+
+        return response()->json([
+            'message' => 'Tarefa marcada como resolvida com sucesso.'
+        ]);
+    }
     
     /**
      * Get paginated URLs for the project.

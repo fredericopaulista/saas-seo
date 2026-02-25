@@ -16,6 +16,7 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/projects/{project}/overview', [DashboardController::class, 'overview']);
     Route::get('/projects/{project}/performance', [DashboardController::class, 'performance']);
     Route::get('/projects/{project}/insights', [DashboardController::class, 'insights']);
+    Route::post('/projects/{project}/insights/{insight}/resolve', [DashboardController::class, 'resolveInsight']);
     Route::get('/projects/{project}/urls', [DashboardController::class, 'urls']);
     Route::post('/projects/{project}/sync', [DashboardController::class, 'triggerSync']);
     Route::post('/projects/{project}/inspect-urls', [DashboardController::class, 'triggerUrlInspection']);

@@ -148,6 +148,22 @@ const forceUrlInspection = async () => {
         alert(e.response?.data?.error || 'Erro ao agendar verificação de URLs.')
     }
 }
+
+const resolveInsight = async (insightId: number) => {
+    if (!project.value) return
+    try {
+        await api.post(`/dashboard/projects/${project.value.id}/insights/${insightId}/resolve`)
+        // Refetch insights immediately to remove it from the list
+        const insightsRes = await api.get(`/dashboard/projects/${project.value.id}/insights`)
+        const severityMap: Record<string, number> = { 'High': 3, 'Medium': 2, 'Low': 1 }
+        insights.value = (insightsRes.data.insights || []).sort((a: any, b: any) => {
+            return (severityMap[b.severity] || 0) - (severityMap[a.severity] || 0)
+        })
+    } catch (e: any) {
+        console.error(e)
+        alert('Erro ao marcar tarefa como resolvida.')
+    }
+}
 </script>
 
 <template>
@@ -388,7 +404,7 @@ const forceUrlInspection = async () => {
 
                             <!-- Example actionable button slot for future -->
                             <div class="mt-4 flex gap-2">
-                                <button class="text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
+                                <button @click="resolveInsight(insight.id)" class="text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
                                     Marcar como Resolvido
                                 </button>
                             </div>
