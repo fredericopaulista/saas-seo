@@ -155,7 +155,7 @@ class SearchConsoleService
     /**
      * Inspect a specific URL indexation status
      */
-    public function inspectUrl(string $url): ?\Google\Service\SearchConsole\RunRequest
+    public function inspectUrl(string $url): ?\Google\Service\SearchConsole\InspectUrlIndexResponse
     {
         try {
             $service = new SearchConsole($this->client);
