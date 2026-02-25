@@ -23,8 +23,10 @@ class GoogleAuthController extends Controller
             'project_id' => ['required', 'exists:projects,id'],
         ]);
 
-        // Keep the project ID in session or state to use after callback
-        $state = json_encode(['project_id' => $request->project_id, 'tenant_id' => Tenant::current()?->id]);
+        $project = Project::findOrFail($request->project_id);
+
+        // Keep the project ID and its tenant ID in session or state to use after callback
+        $state = json_encode(['project_id' => $project->id, 'tenant_id' => $project->tenant_id]);
 
         return Socialite::driver('google')
             ->scopes(['https://www.googleapis.com/auth/webmasters.readonly'])

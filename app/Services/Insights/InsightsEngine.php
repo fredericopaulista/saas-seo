@@ -4,81 +4,113 @@ namespace App\Services\Insights;
 
 use App\Models\Project;
 use App\Models\Insight;
+use App\Models\Setting;
+use Illuminate\Support\Facades\Log;
+use OpenAI;
 
 class InsightsEngine
 {
     /**
-     * Executes the main insight rules for a project and records anomalies/opportunities.
+     * Executes the main insight rules for a project using AI reasoning via OpenAI.
      */
     public function analyze(Project $project): void
     {
-        $this->detectTrafficDrops($project);
-        $this->detectLowHangingFruits($project);
-    }
+        $openAiKey = Setting::where('key', 'OPENAI_API_KEY')->value('value');
 
-    /**
-     * Identifies pages that lost more than 20% of clicks compared to previous period.
-     */
-    private function detectTrafficDrops(Project $project): void
-    {
-        // Example logic: in real app you aggregate using advanced SQL queries
-        // comparing date range X against date range Y.
-        
-        // Simulating the rule:
-        $hasSignificantDrop = false; // pseudo logic check
-        
-        if ($hasSignificantDrop) {
-            Insight::create([
-                'project_id' => $project->id,
-                'type' => 'anomaly',
-                'severity' => 'CRITICAL',
-                'title' => 'Severe Traffic Drop Detected',
-                'description' => 'The path /example-page lost 25% of its organic clicks over the past 7 days.',
-                'metadata' => [
-                    'page' => '/example-page',
-                    'drop_percentage' => 25.0,
-                    'previous_clicks' => 1000,
-                    'current_clicks' => 750,
-                ],
-            ]);
+        if (!$openAiKey) {
+            Log::warning("Insights Engine falhou para o projeto {$project->id}. O Super Admin ainda não configurou a OPENAI_API_KEY.");
+            return;
         }
-    }
 
-    /**
-     * Identifies queries ranking between 8 and 20 that generate high impressions but low CTR.
-     */
-    private function detectLowHangingFruits(Project $project): void
-    {
-        // Fetch queries from DB that match the criteria
+        // Fetch top low hanging fruits for analysis (e.g. pages close to page 1 but losing CTR)
         $opportunities = $project->performanceData()
-            ->whereBetween('position', [8, 20])
-            ->where('impressions', '>', 500)
-            ->where('ctr', '<', 2.0)
+            ->whereBetween('position', [5, 25])
+            ->where('impressions', '>', 50)
+            ->latest('date')
+            ->take(20)
             ->get();
 
-        foreach ($opportunities as $opp) {
-            // Prevent duplicate insights creation
-            $exists = $project->insights()
-                ->where('type', 'opportunity')
-                ->whereJsonContains('metadata->query', $opp->query)
-                ->whereNull('resolved_at')
-                ->exists();
+        if ($opportunities->isEmpty()) {
+            return;
+        }
 
-            if (! $exists) {
-                Insight::create([
-                    'project_id' => $project->id,
-                    'type' => 'opportunity',
-                    'severity' => 'INFO',
-                    'title' => 'Optimization Opportunity Found',
-                    'description' => "Query '{$opp->query}' is ranking at position {$opp->position} with high impressions but low CTR. Title/Meta optimization recommended.",
-                    'metadata' => [
-                        'query' => $opp->query,
-                        'position' => $opp->position,
-                        'impressions' => $opp->impressions,
-                        'ctr' => $opp->ctr,
-                    ],
-                ]);
+        $dataPayload = $opportunities->map(function($data) {
+            return [
+                'query' => $data->query,
+                'page' => $data->page,
+                'clicks' => $data->clicks,
+                'impressions' => $data->impressions,
+                'ctr' => $data->ctr,
+                'position' => $data->position
+            ];
+        })->toJson();
+
+        $prompt = <<<EOT
+You are a senior technical SEO expert. Analyzing the following Google Search Console recent metric snapshot for domain "{$project->domain}", 
+your job is to identify actionable "Insights". Look for:
+1. "opportunity": Queries ranking between position 8 and 25 with good impressions but bad CTR. Identify exact steps to refine their metadata or internal linking.
+2. "anomaly": Severe drop in metrics or highly weird CTR for its ranking. 
+
+Return only a pure JSON array containing the insights found, following this exact schema per object:
+[
+  {
+    "type": "opportunity or anomaly",
+    "severity": "Low, Medium, or High",
+    "title": "A short, direct impact title (in Portuguese)",
+    "description": "The detailed explanation of what is happening and the actionable recommendation to fix it (in Portuguese)",
+    "metadata": {
+      "query": "the affected query if applicable",
+      "metric_focus": "e.g. position, ctr, etc."
+    }
+  }
+]
+
+Maximum 3 most critical insights. JSON only (without ```json wrappers).
+DATA SNAPSHOT:
+$dataPayload
+EOT;
+
+        try {
+            $client = OpenAI::client($openAiKey);
+
+            $response = $client->chat()->create([
+                'model' => 'gpt-4o-mini',
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are an SEO AI specialized in analyzing Google Search data.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'temperature' => 0.4,
+            ]);
+
+            $content = trim($response->choices[0]->message->content);
+            
+            // Clean markdown syntax if AI still injects it
+            $content = str_replace(['```json', '```'], '', $content);
+            $parsedInsights = json_decode($content, true);
+
+            if (is_array($parsedInsights)) {
+                foreach ($parsedInsights as $insightData) {
+                    
+                    // Prevent duplicating exact titles for the same URL target
+                    $exists = Insight::where('project_id', $project->id)
+                        ->where('title', $insightData['title'])
+                        ->exists();
+
+                    if (!$exists) {
+                        Insight::create([
+                            'project_id' => $project->id,
+                            'type' => $insightData['type'] ?? 'opportunity',
+                            'severity' => $insightData['severity'] ?? 'Medium',
+                            'title' => $insightData['title'],
+                            'description' => $insightData['description'],
+                            'metadata' => $insightData['metadata'] ?? [],
+                        ]);
+                    }
+                }
             }
+
+        } catch (\Exception $e) {
+            Log::error("Failed to generate AI insights for project {$project->id}: " . $e->getMessage());
         }
     }
 }

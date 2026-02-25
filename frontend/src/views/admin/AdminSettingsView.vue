@@ -8,7 +8,8 @@ const saving = ref(false)
 
 const settings = ref({
     GOOGLE_CLIENT_ID: '',
-    GOOGLE_CLIENT_SECRET: ''
+    GOOGLE_CLIENT_SECRET: '',
+    OPENAI_API_KEY: ''
 })
 
 onMounted(async () => {
@@ -24,6 +25,11 @@ const fetchSettings = async () => {
             data.google_oauth.forEach((item: any) => {
                 if (item.key === 'GOOGLE_CLIENT_ID') settings.value.GOOGLE_CLIENT_ID = item.value || ''
                 if (item.key === 'GOOGLE_CLIENT_SECRET') settings.value.GOOGLE_CLIENT_SECRET = item.value || ''
+            })
+        }
+        if (data.ai_services) {
+            data.ai_services.forEach((item: any) => {
+                if (item.key === 'OPENAI_API_KEY') settings.value.OPENAI_API_KEY = item.value || ''
             })
         }
     } catch (e) {
@@ -47,6 +53,11 @@ const saveSettings = async () => {
                     key: 'GOOGLE_CLIENT_SECRET',
                     value: settings.value.GOOGLE_CLIENT_SECRET,
                     group: 'google_oauth'
+                },
+                {
+                    key: 'OPENAI_API_KEY',
+                    value: settings.value.OPENAI_API_KEY,
+                    group: 'ai_services'
                 }
             ]
         }
@@ -120,6 +131,36 @@ const saveSettings = async () => {
                 <div class="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-4 rounded-lg text-sm flex gap-3 items-start">
                     <p>
                         <strong>Importante:</strong> Após alterar essas chaves as configurações de OAuth serão sobrescritas no carregamento e a API do Google usará os novos tokens imediatamente. As segregrações de Oauth por tenant ainda seguem esse app global.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Engine Card -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mt-6">
+            <div class="p-6 border-b border-gray-800 bg-gray-900/50 flex items-center gap-3">
+                <div class="bg-purple-500/10 p-2 rounded-lg">
+                    <KeyRound class="w-5 h-5 text-purple-500" />
+                </div>
+                <div>
+                   <h3 class="font-bold text-white">Motor de Inteligência Artificial</h3>
+                   <p class="text-xs text-gray-500 mt-1">Credenciais do OpenAI / LLMs para geração de Auditorias Autônomas (Insights)</p>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">OpenAI API Key (ChatGPT)</label>
+                    <input 
+                        v-model="settings.OPENAI_API_KEY" 
+                        type="password" 
+                        placeholder="Ex: sk-proj-123456789abc..." 
+                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
+                    >
+                </div>
+                
+                 <div class="bg-purple-500/10 border border-purple-500/20 text-purple-400 p-4 rounded-lg text-sm flex gap-3 items-start">
+                    <p>
+                        <strong>Dica:</strong> Essa chave é utilizada no Job diário que analisa os dados do Search Console puxados dos clientes e escreve sugestões de melhoria (Opportunities e Anomalies) na página de Insights de cada Projeto.
                     </p>
                 </div>
             </div>
