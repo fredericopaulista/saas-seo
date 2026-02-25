@@ -41,6 +41,7 @@ const subscribe = async (planId: number) => {
         alert(e.response?.data?.message || 'Falha ao processar assinatura.')
     } finally {
         subscribingTo.value = null
+    }
 }
 
 const translateCycle = (cycle: string) => {
