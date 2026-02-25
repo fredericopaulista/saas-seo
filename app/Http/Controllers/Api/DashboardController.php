@@ -92,6 +92,10 @@ class DashboardController extends Controller
     public function triggerSync(Request $request, Project $project)
     {
         // Add auth constraints here based on Tenant
+        if ($project->tenant) {
+            $project->tenant->makeCurrent();
+        }
+
         SyncProjectDataJob::dispatch($project);
 
         return response()->json([
