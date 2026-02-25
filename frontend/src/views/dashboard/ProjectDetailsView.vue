@@ -17,6 +17,9 @@ const urlStats = ref<any>(null)
 const performanceData = ref<any>(null)
 const insights = ref<any[]>([])
 
+const syncError = ref<string | null>(null)
+const showReconnect = ref(false)
+
 const fetchProjectDetails = async () => {
     loading.value = true
     try {
@@ -58,12 +61,17 @@ const getScoreColor = (score: number) => {
 
 const forceSync = async () => {
     if (!project.value) return
+    syncError.value = null
+    showReconnect.value = false
     try {
         const res = await api.post(`/dashboard/projects/${project.value.id}/sync`)
         alert(res.data.message)
     } catch (e: any) {
         console.error(e)
-        alert(e.response?.data?.error || 'Erro ao agendar sincronização.')
+        syncError.value = e.response?.data?.error || 'Erro ao agendar sincronização.'
+        if (e.response?.status === 401) {
+            showReconnect.value = true
+        }
     }
 }
 </script>
@@ -115,6 +123,28 @@ const forceSync = async () => {
                     Ajustes
                 </button>
             </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div v-if="syncError" class="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div class="flex items-start gap-4">
+                <div class="p-2 bg-red-500/20 rounded-lg text-red-400">
+                    <Activity class="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 class="text-red-400 font-bold text-lg">Atenção Necessária</h3>
+                    <p class="text-red-400/80 text-sm mt-1">{{ syncError }}</p>
+                </div>
+            </div>
+            <a v-if="showReconnect" :href="`/api/auth/google?project_id=${project.id}`" class="bg-white text-gray-900 border border-gray-200 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-lg whitespace-nowrap">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25C22.56 11.47 22.49 10.74 22.38 10.04H12V14.22H17.92C17.67 15.58 16.88 16.73 15.72 17.51V20.21H19.29C21.37 18.29 22.56 15.54 22.56 12.25Z" fill="#4285F4"/>
+                    <path d="M12 23C14.97 23 17.46 22.02 19.29 20.21L15.72 17.51C14.73 18.17 13.48 18.57 12 18.57C9.13 18.57 6.69 16.63 5.82 14.04H2.14V16.89C3.96 20.49 7.69 23 12 23Z" fill="#34A853"/>
+                    <path d="M5.82 14.04C5.6 13.38 5.47 12.7 5.47 12C5.47 11.3 5.6 10.62 5.82 9.96V7.11H2.14C1.39 8.6 0.98 10.25 0.98 12C0.98 13.75 1.39 15.4 2.14 16.89L5.82 14.04Z" fill="#FBBC05"/>
+                    <path d="M12 5.43C13.62 5.43 15.06 5.98 16.2 7.07L19.38 3.89C17.45 2.1 14.96 1 12 1C7.69 1 3.96 3.51 2.14 7.11L5.82 9.96C6.69 7.37 9.13 5.43 12 5.43Z" fill="#EA4335"/>
+                </svg>
+                Restabelecer Conexão
+            </a>
         </div>
 
         <!-- Metrics Grid -->
