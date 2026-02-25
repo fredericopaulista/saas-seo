@@ -13,6 +13,13 @@ Route::prefix('admin')->middleware(['auth:admin', 'admin.permission'])->group(fu
             'tenants' => \App\Models\Tenant::latest()->get()
         ]);
     });
+
+    Route::get('/billing-overview', function () {
+        return response()->json([
+            'plans' => \App\Models\Plan::withCount('subscriptions')->get(),
+            'subscriptions' => \App\Models\Subscription::with(['tenant', 'plan'])->latest()->take(50)->get()
+        ]);
+    });
     
     // Impersonate Tenant
     Route::post('/tenants/{id}/impersonate', [\App\Http\Controllers\Api\Admin\ImpersonationController::class, 'impersonate']);
