@@ -56,6 +56,16 @@ const getScoreColor = (score: number) => {
     return 'text-red-400'
 }
 
+const forceSync = async () => {
+    if (!project.value) return
+    try {
+        const res = await api.post(`/dashboard/projects/${project.value.id}/sync`)
+        alert(res.data.message)
+    } catch (e) {
+        console.error(e)
+        alert('Erro ao agendar sincronização.')
+    }
+}
 </script>
 
 <template>
@@ -96,7 +106,7 @@ const getScoreColor = (score: number) => {
             </div>
 
             <div class="relative z-10 flex gap-3">
-                <button class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-lg">
+                <button @click="forceSync" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-lg">
                     <RefreshCcw class="w-4 h-4" />
                     Forçar Sincronização
                 </button>

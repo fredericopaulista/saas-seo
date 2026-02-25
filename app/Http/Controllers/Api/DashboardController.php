@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Jobs\ProcessProjectGSCData;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -82,6 +83,19 @@ class DashboardController extends Controller
 
         return response()->json([
             'insights' => $insights
+        ]);
+    }
+
+    /**
+     * Manually dispatches the Google Search Console sync job.
+     */
+    public function triggerSync(Request $request, Project $project)
+    {
+        // Add auth constraints here based on Tenant
+        ProcessProjectGSCData::dispatch($project);
+
+        return response()->json([
+            'message' => 'Sincronização agendada na fila com sucesso. Os dados devem aparecer em alguns minutos.'
         ]);
     }
 }

@@ -32,6 +32,7 @@ Route::prefix('dashboard/projects/{project}')->group(function () {
     Route::get('/overview', [\App\Http\Controllers\Api\DashboardController::class, 'overview'])->name('dashboard.overview');
     Route::get('/performance', [\App\Http\Controllers\Api\DashboardController::class, 'performance'])->name('dashboard.performance');
     Route::get('/insights', [\App\Http\Controllers\Api\DashboardController::class, 'insights'])->name('dashboard.insights');
+    Route::post('/sync', [\App\Http\Controllers\Api\DashboardController::class, 'triggerSync'])->name('dashboard.sync');
 });
 
 // Asaas Webhooks (Public, validated via Header Token)
