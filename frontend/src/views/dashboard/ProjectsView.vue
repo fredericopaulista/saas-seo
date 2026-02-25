@@ -115,15 +115,29 @@ const deleteProject = async (id: number) => {
             <div class="space-y-2 mt-4 pt-4 border-t border-gray-800">
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">GSC Property</span>
-                    <span class="text-gray-300 font-mono text-xs">{{ project.gsc_property }}</span>
+                    <span class="text-gray-300 font-mono text-xs truncate max-w-[150px]">{{ project.gsc_property }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Segmentação</span>
                     <span class="text-gray-300 uppercase">{{ project.language }}-{{ project.country }}</span>
                 </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Google Token</span>
+                    <span v-if="project.search_console_token" class="text-green-500 font-medium text-xs">Conectado</span>
+                    <span v-else class="text-yellow-500 font-medium text-xs">Pendente</span>
+                </div>
             </div>
             
-            <div class="mt-6 flex gap-3">
+            <div class="mt-6 flex flex-col gap-3">
+                <a 
+                    v-if="!project.search_console_token"
+                    :href="`http://localhost:8000/api/auth/google?project_id=${project.id}`" 
+                    target="_blank"
+                    class="w-full text-center bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 py-2 rounded-lg text-sm font-medium transition border border-indigo-600/30"
+                >
+                    Conectar Conta Google
+                </a>
+                
                 <router-link :to="`/dashboard/projects/${project.id}`" class="w-full text-center bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg text-sm font-medium transition">
                     Ver Dashboard
                 </router-link>

@@ -17,7 +17,9 @@ class ProjectController extends Controller
     {
         $tenantId = $request->user()->current_tenant_id;
         
-        $projects = Project::where('tenant_id', $tenantId)->get();
+        $projects = Project::where('tenant_id', $tenantId)
+            ->with('searchConsoleToken')
+            ->get();
         
         return response()->json($projects);
     }
@@ -41,8 +43,22 @@ class ProjectController extends Controller
             return response()->json(['message' => 'Nenhum espaço de trabalho ativo encontrado.'], 403);
         }
 
-        // Ideally checking subscription limits here:
-        // app(CheckSubscriptionLimits::class)->checkProjectQuota($tenantId);
+        // Project limits enforcement
+        $subscription = \App\Models\Subscription::with('plan')
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', ['active', 'ACTIVE', 'trialing'])
+            ->first();
+
+        // Fallback for missing subscription vs hard limit
+        $limit = $subscription ? $subscription->plan->max_projects : 1; // Default 1 project limit if no active sub
+        
+        $currentProjectsCount = Project::where('tenant_id', $tenantId)->count();
+
+        if ($currentProjectsCount >= $limit) {
+             return response()->json([
+                 'message' => "Você atingiu o limite de {$limit} projetos do seu plano atual."
+             ], 403);
+        }
 
         $project = new Project();
         $project->tenant_id = $tenantId;
