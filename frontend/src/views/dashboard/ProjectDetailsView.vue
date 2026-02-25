@@ -141,6 +141,7 @@ const forceUrlInspection = async () => {
     try {
         const res = await api.post(`/dashboard/projects/${project.value.id}/inspect-urls`)
         alert(res.data.message)
+        await fetchProjectDetails()
     } catch (e: any) {
         console.error(e)
         alert(e.response?.data?.error || 'Erro ao agendar verificação de URLs.')
