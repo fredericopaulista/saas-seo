@@ -30,6 +30,14 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->firstOrFail();
 
+        // Ensure current_tenant_id is set to the user's first tenant if missing
+        if (!$user->current_tenant_id) {
+            $firstTenant = $user->tenants()->first();
+            if ($firstTenant) {
+                $user->update(['current_tenant_id' => $firstTenant->id]);
+            }
+        }
+
         // Create token for the user
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -69,6 +77,7 @@ class AuthController extends Controller
         ]);
 
         $user->tenants()->attach($tenant->id);
+        $user->update(['current_tenant_id' => $tenant->id]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

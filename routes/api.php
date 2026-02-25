@@ -14,14 +14,16 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->name('auth.me');
         Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->name('auth.logout');
-        
-        // Projects Management
-        Route::apiResource('/projects', \App\Http\Controllers\Api\ProjectController::class);
     });
 
     // Google OAuth
     Route::get('/google', [\App\Http\Controllers\Api\GoogleAuthController::class, 'redirect'])->name('google.redirect');
     Route::get('/google/callback', [\App\Http\Controllers\Api\GoogleAuthController::class, 'callback'])->name('google.callback');
+});
+
+// Projects Management (General Auth logic)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/projects', \App\Http\Controllers\Api\ProjectController::class);
 });
 
 // Using a prefix and middleware (ideally auth:sanctum & tenant context)
