@@ -64,8 +64,11 @@ echo "[OK] Asaas Webhook received: PAYMENT_RECEIVED. Subscription activated!\n";
 // 5. Project Registration (Core App)
 $project = new Project();
 $project->tenant_id = $tenant->id;
+$project->name = 'Cliente Simulação';
 $project->domain = 'https://simulation-client.com';
-$project->is_active = true;
+$project->gsc_property = 'sc-domain:simulation-client.com';
+$project->country = 'br';
+$project->language = 'pt';
 $project->save();
 echo "[OK] Project attached to Tenant: {$project->domain}\n";
 
