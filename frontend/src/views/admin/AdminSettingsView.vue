@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import api from '@/services/admin' // or wherever admin api is
+import api from '@/services/api'
 import { Settings, Save, KeyRound } from 'lucide-vue-next'
 
 const loading = ref(false)
@@ -18,7 +18,7 @@ onMounted(async () => {
 const fetchSettings = async () => {
     loading.value = true
     try {
-        const { data } = await api.get('/settings')
+        const { data } = await api.get('/admin/settings')
         
         if (data.google_oauth) {
             data.google_oauth.forEach((item: any) => {
@@ -51,7 +51,7 @@ const saveSettings = async () => {
             ]
         }
         
-        await api.post('/settings', payload)
+        await api.post('/admin/settings', payload)
         alert('Configurações Globais salvas com sucesso!')
     } catch (e) {
         console.error('Error saving', e)

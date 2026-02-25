@@ -46,7 +46,6 @@ const logout = async () => {
         </router-link>
 
         <router-link to="/admin/system" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" active-class="bg-gray-800 text-white border-l-4 border-red-500">
-        <router-link to="/admin/system" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" active-class="bg-gray-800 text-white border-l-4 border-red-500">
           <Activity class="w-5 h-5" />
           <span>Monitoramento Técnico</span>
         </router-link>
