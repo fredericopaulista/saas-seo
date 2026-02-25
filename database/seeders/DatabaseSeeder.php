@@ -41,5 +41,9 @@ class DatabaseSeeder extends Seeder
         if (!$adminUser->tenants->contains($tenant->id)) {
             $adminUser->tenants()->attach($tenant->id);
         }
+
+        $this->call([
+            PlanSeeder::class,
+        ]);
     }
 }

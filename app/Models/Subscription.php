@@ -11,6 +11,8 @@ class Subscription extends Model
 
     protected $fillable = [
         'stripe_id',
+        'asaas_subscription_id',
+        'status_gateway',
         'plan_id',
         'status',
         'ends_at',

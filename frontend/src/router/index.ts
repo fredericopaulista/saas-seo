@@ -3,6 +3,8 @@ import { useAuthStore } from '../stores/auth'
 import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminTenantsView from '../views/admin/AdminTenantsView.vue'
+import AdminBillingView from '../views/admin/AdminBillingView.vue'
+import AdminSystemView from '../views/admin/AdminSystemView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,6 +26,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/pricing',
+      name: 'pricing',
+      component: () => import('../views/billing/PricingView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/admin',
       component: AdminLayout,
       meta: { requiresAuth: true, requiresAdmin: true }, // Assuming admin routes require auth and admin role
@@ -37,6 +45,16 @@ const router = createRouter({
           path: 'tenants', // /admin/tenants
           name: 'admin-tenants',
           component: AdminTenantsView,
+        },
+        {
+          path: 'billing', // /admin/billing
+          name: 'admin-billing',
+          component: AdminBillingView,
+        },
+        {
+          path: 'system', // /admin/system
+          name: 'admin-system',
+          component: AdminSystemView,
         }
       ]
     }

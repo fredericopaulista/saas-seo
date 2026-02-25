@@ -10,6 +10,9 @@ class Plan extends Model
         'name',
         'slug',
         'stripe_price_id',
+        'asaas_id',
+        'price',
+        'max_projects',
         'features_json',
     ];
 

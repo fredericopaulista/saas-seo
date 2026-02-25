@@ -28,3 +28,11 @@ Route::prefix('dashboard/projects/{project}')->group(function () {
     Route::get('/performance', [\App\Http\Controllers\Api\DashboardController::class, 'performance'])->name('dashboard.performance');
     Route::get('/insights', [\App\Http\Controllers\Api\DashboardController::class, 'insights'])->name('dashboard.insights');
 });
+
+// Asaas Webhooks (Public, validated via Header Token)
+Route::post('/webhooks/asaas', [\App\Http\Controllers\Api\Webhook\AsaasWebhookController::class, 'handle']);
+
+Route::prefix('billing')->middleware('auth:sanctum')->group(function () {
+    Route::get('/plans', [\App\Http\Controllers\Api\BillingController::class, 'getPlans']);
+    Route::post('/subscribe', [\App\Http\Controllers\Api\BillingController::class, 'subscribe']);
+});
