@@ -17,8 +17,9 @@ onMounted(async () => {
 const loadPlans = async () => {
     loading.value = true
     try {
-        const { data } = await api.get('/admin/plans')
-        plans.value = data
+        const res = await api.get('/admin/plans')
+        // Handle both raw array returns or Laravel resource { data: [...] } wraps natively
+        plans.value = Array.isArray(res.data) ? res.data : (res.data.data || [])
     } catch (e) {
         console.error('Failed to load plans:', e)
     } finally {
