@@ -17,4 +17,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    outDir: '../public',
+    emptyOutDir: false, // Don't wipe the whole public folder, because Laravel has its own files there like index.php and .htaccess
+  }
 })
