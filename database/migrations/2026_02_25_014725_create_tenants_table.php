@@ -14,10 +14,19 @@ return new class extends Migration
             $table->string('domain')->unique();
             $table->timestamps();
         });
+
+        Schema::create('tenant_user', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->timestamps();
+            $table->unique(['tenant_id', 'user_id']);
+        });
     }
 
     public function down()
     {
+        Schema::dropIfExists('tenant_user');
         Schema::dropIfExists('tenants');
     }
 };

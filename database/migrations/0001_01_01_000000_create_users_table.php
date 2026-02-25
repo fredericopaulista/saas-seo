@@ -33,18 +33,10 @@ return new class extends Migration
             $table->integer('last_activity')->index();
         });
 
-        Schema::create('tenant_user', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
-            $table->unique(['tenant_id', 'user_id']);
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('tenant_user');
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
