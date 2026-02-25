@@ -7,6 +7,7 @@ import AdminTenantsView from '../views/admin/AdminTenantsView.vue'
 import AdminPlansView from '../views/admin/AdminPlansView.vue'
 import AdminBillingView from '../views/admin/AdminBillingView.vue'
 import AdminSystemView from '../views/admin/AdminSystemView.vue'
+import AdminSettingsView from '../views/admin/AdminSettingsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,6 +74,11 @@ const router = createRouter({
           path: 'system', // /admin/system
           name: 'admin-system',
           component: AdminSystemView,
+        },
+        {
+          path: 'settings', // /admin/settings
+          name: 'admin-settings',
+          component: AdminSettingsView,
         }
       ]
     }

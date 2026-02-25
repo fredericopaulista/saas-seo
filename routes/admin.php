@@ -38,4 +38,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.permission'])->group(
     Route::get('/system/health', function (\App\Services\Admin\SystemMonitoringService $service) {
         return response()->json($service->getSystemHealth());
     });
+
+    // Global Settings
+    Route::get('/settings', [\App\Http\Controllers\Api\Admin\SettingController::class, 'index']);
+    Route::post('/settings', [\App\Http\Controllers\Api\Admin\SettingController::class, 'store']);
 });

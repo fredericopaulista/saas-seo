@@ -21,12 +21,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const logout = async () => {
-        await api.post('/auth/logout')
-        token.value = null
-        user.value = null
-        isAdmin.value = false
-        localStorage.removeItem('auth_token')
-        router.push('/login')
+        try {
+            await api.post('/auth/logout')
+        } catch (error) {
+            console.error('Logout error skipped on frontend.', error)
+        } finally {
+            token.value = null
+            user.value = null
+            isAdmin.value = false
+            localStorage.removeItem('auth_token')
+            router.push('/login')
+        }
     }
 
     const fetchUser = async () => {
