@@ -40,6 +40,7 @@ const translateIndexStatus = (status: string) => {
 const translateCoverage = (status: string) => {
     if (!status) return ''
     const map: Record<string, string> = {
+        'Submitted and indexed': 'Indexada',
         'Valid': 'Válida',
         'Error': 'Erro',
         'Pending': 'Pendente',
@@ -263,12 +264,12 @@ const forceUrlInspection = async () => {
              <div class="relative overflow-hidden bg-gradient-to-b from-white/5 to-transparent p-6 rounded-3xl border border-white/5 flex flex-col justify-between group hover:border-white/10 transition-all duration-500 shadow-xl backdrop-blur-md">
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
                 <div class="flex items-center justify-between relative z-10">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Páginas Válidas</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Páginas Indexadas</span>
                     <Layers class="h-5 w-5 text-gray-500 group-hover:text-blue-400 transition-colors" />
                 </div>
                 <div class="mt-8 relative z-10">
                     <span class="text-4xl font-black text-white drop-shadow-lg tabular-nums">
-                      {{ urlStats?.valid?.toLocaleString() || 0 }}
+                      {{ urlStats?.indexed?.toLocaleString() || 0 }}
                     </span>
                     <div class="mt-3 flex items-center text-xs text-gray-500 font-medium">
                         De um total de {{ urlStats?.total || 0 }} detectadas
