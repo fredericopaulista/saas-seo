@@ -38,30 +38,31 @@ class FetchSearchAnalyticsJob implements ShouldQueue, TenantAware
             // Determine how many days back to fetch based on Tenant plan limits
             $retentionDays = $billingService->getGscRetentionDays($this->project->tenant);
             
-            // We fetch the data for yesterday to ensure GSC has fully updated it
-            $endDate = now()->subDays(2)->format('Y-m-d');
-            $startDate = now()->subDays($retentionDays)->format('Y-m-d');
+            // Since we need percentage growth, let's fetch double the retention days just the first time, or just 60 days flat for MVP to work:
+            $startDate = now()->subDays(60)->format('Y-m-d');
+            $endDate = now()->subDays(2)->format('Y-m-d'); // GSC data delay is typically ~2 days
 
             Log::info("Fetching Search Analytics for project {$this->project->id} from {$startDate} to {$endDate}");
 
-            // Note: Google recommends small chunks. For MVP, we pass the large date range. 
-            // In Production, chunk by day: `for ($d = 2; $d <= $retentionDays; $d++)`
-            $rows = $gscService->fetchSearchAnalytics($startDate, $endDate);
+            // Ensure we include 'date' in the dimensions so we get rows segregated by date
+            $dimensions = ['date', 'query', 'page', 'device', 'country'];
+            $rows = $gscService->fetchSearchAnalytics($startDate, $endDate, $dimensions);
             
             Log::info("GSC API returned " . count($rows) . " rows for project {$this->project->id}");
 
             $upsertData = [];
             foreach ($rows as $row) {
-                // Dimensions order: ['query', 'page', 'device', 'country']
                 $keys = $row->getKeys();
+                // Dimensions order mapping based on $dimensions array: 
+                // 0: date, 1: query, 2: page, 3: device, 4: country
                 
                 $upsertData[] = [
                     'project_id' => $this->project->id,
-                    'date' => $endDate, // Using endDate as approximation for this batch MVP
-                    'query' => $keys[0] ?? null,
-                    'page' => $keys[1] ?? null,
-                    'device' => $keys[2] ?? null,
-                    'country' => $keys[3] ?? null,
+                    'date' => $keys[0] ?? $endDate, // Safe fallback
+                    'query' => $keys[1] ?? null,
+                    'page' => $keys[2] ?? null,
+                    'device' => $keys[3] ?? null,
+                    'country' => $keys[4] ?? null,
                     'clicks' => $row->getClicks(),
                     'impressions' => $row->getImpressions(),
                     'ctr' => $row->getCtr() * 100,
