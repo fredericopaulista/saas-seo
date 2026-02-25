@@ -9,8 +9,10 @@ use Exception;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Spatie\Multitenancy\Jobs\TenantAware;
+use Spatie\Multitenancy\Models\Tenant;
 
-class FetchSitemapJob implements ShouldQueue
+class FetchSitemapJob implements ShouldQueue, TenantAware
 {
     use Queueable;
 
