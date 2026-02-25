@@ -26,6 +26,37 @@ const activeTab = ref('traffic')
 const syncError = ref<string | null>(null)
 const showReconnect = ref(false)
 
+const translateIndexStatus = (status: string) => {
+    if (!status) return ''
+    const map: Record<string, string> = {
+        'Indexed': 'Indexada',
+        'Discovered': 'Descoberta',
+        'Error': 'Não Indexada',
+        'Pending': 'Pendente'
+    }
+    return map[status] || status
+}
+
+const translateCoverage = (status: string) => {
+    if (!status) return ''
+    const map: Record<string, string> = {
+        'Valid': 'Válida',
+        'Error': 'Erro',
+        'Pending': 'Pendente',
+        'Discovered - currently not indexed': 'Descoberta - não indexada',
+        'Crawled - currently not indexed': 'Rastreada - não indexada',
+        'Page with redirect': 'Página com redirecionamento',
+        'Excluded by ‘noindex’ tag': 'Excluída pela tag "noindex"',
+        'Alternate page with proper canonical tag': 'Página com tag canônica',
+        'Duplicate without user-selected canonical': 'Duplicada sem tag canônica',
+        'Not found (404)': 'Não encontrada (404)',
+        'Server error (5xx)': 'Erro no servidor (5xx)',
+        'Soft 404': 'Soft 404',
+        'Blocked by robots.txt': 'Bloqueada pelo robots.txt'
+    }
+    return map[status] || status
+}
+
 const fetchProjectDetails = async () => {
     loading.value = true
     try {
@@ -382,9 +413,9 @@ const forceSync = async () => {
                                     <span v-else-if="url.index_status === 'Error'" class="inline-flex items-center bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider">
                                        Não Indexada
                                     </span>
-                                    <span v-else class="text-gray-500 text-xs uppercase font-bold">{{ url.index_status }}</span>
+                                    <span v-else class="text-gray-500 text-xs uppercase font-bold">{{ translateIndexStatus(url.index_status) }}</span>
                                 </td>
-                                <td class="p-4 text-gray-400 text-xs font-mono">{{ url.coverage_status }}</td>
+                                <td class="p-4 text-gray-400 text-xs">{{ translateCoverage(url.coverage_status) }}</td>
                                 <td class="p-4 text-right text-gray-500">{{ new Date(url.last_crawled).toLocaleDateString() }}</td>
                             </tr>
                         </tbody>
