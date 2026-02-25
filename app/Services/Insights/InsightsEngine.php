@@ -22,13 +22,14 @@ class InsightsEngine
             return;
         }
 
-        // Fetch top low hanging fruits for analysis (e.g. pages close to page 1 but losing CTR)
+        // Fetch top rows for analysis (take the most recent high impression queries)
         $opportunities = $project->performanceData()
-            ->whereBetween('position', [5, 25])
-            ->where('impressions', '>', 50)
+            ->orderBy('impressions', 'desc')
             ->latest('date')
-            ->take(20)
+            ->take(30)
             ->get();
+            
+        Log::info("Insights Engine: Found {$opportunities->count()} opportunities for project {$project->id}");
 
         if ($opportunities->isEmpty()) {
             return;
@@ -48,7 +49,7 @@ class InsightsEngine
         $prompt = <<<EOT
 You are a senior technical SEO expert. Analyzing the following Google Search Console recent metric snapshot for domain "{$project->domain}", 
 your job is to identify actionable "Insights". Look for:
-1. "opportunity": Queries ranking between position 8 and 25 with good impressions but bad CTR. Identify exact steps to refine their metadata or internal linking.
+1. "opportunity": Queries ranking well but with bad CTR, or queries almost on the first page that could be improved. Identify exact steps to refine their metadata or internal linking.
 2. "anomaly": Severe drop in metrics or highly weird CTR for its ranking. 
 
 Return only a pure JSON array containing the insights found, following this exact schema per object:

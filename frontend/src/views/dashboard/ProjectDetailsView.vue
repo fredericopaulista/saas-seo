@@ -66,6 +66,8 @@ const forceSync = async () => {
     try {
         const res = await api.post(`/dashboard/projects/${project.value.id}/sync`)
         alert(res.data.message)
+        // Refresh the page data automatically
+        await fetchProjectDetails()
     } catch (e: any) {
         console.error(e)
         syncError.value = e.response?.data?.error || 'Erro ao agendar sincronização.'
