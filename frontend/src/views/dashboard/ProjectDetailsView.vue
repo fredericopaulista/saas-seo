@@ -61,9 +61,9 @@ const forceSync = async () => {
     try {
         const res = await api.post(`/dashboard/projects/${project.value.id}/sync`)
         alert(res.data.message)
-    } catch (e) {
+    } catch (e: any) {
         console.error(e)
-        alert('Erro ao agendar sincronização.')
+        alert(e.response?.data?.error || 'Erro ao agendar sincronização.')
     }
 }
 </script>

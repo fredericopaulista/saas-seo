@@ -96,7 +96,14 @@ class DashboardController extends Controller
             $project->tenant->makeCurrent();
         }
 
-        SyncProjectDataJob::dispatch($project);
+        try {
+            SyncProjectDataJob::dispatch($project);
+        } catch (\Exception $e) {
+            if (str_contains($e->getMessage(), 'Token is expired') || str_contains($e->getMessage(), 'No Search Console token found')) {
+                return response()->json(['error' => 'Sua conexão com o Google expirou ou é inválida. Por favor, conecte novamente sua conta do Google na página de projetos.'], 401);
+            }
+            return response()->json(['error' => 'Erro ao processar sincronização: ' . $e->getMessage()], 500);
+        }
 
         return response()->json([
             'message' => 'Sincronização agendada na fila com sucesso. Os dados devem aparecer em alguns minutos.'
