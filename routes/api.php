@@ -2,37 +2,47 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\GoogleAuthController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Using simple group without full auth to simplify boilerplate for MVP demonstration
-// Replace with middleware('auth:sanctum') in secure production wrapper
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->name('auth.login');
+    Route::post('/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->name('auth.register');
 
-// Projects Management
-// Using apiResource creates GET /projects, POST /projects, DELETE /projects/{project} etc.
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->name('auth.me');
+        Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->name('auth.logout');
+    });
+
+    // Google OAuth
+    Route::get('/google', [\App\Http\Controllers\Api\GoogleAuthController::class, 'redirect'])->name('google.redirect');
+    Route::get('/google/callback', [\App\Http\Controllers\Api\GoogleAuthController::class, 'callback'])->name('google.callback');
+});
+
+// Projects Management (General Auth logic)
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/projects', \App\Http\Controllers\Api\ProjectController::class);
 });
 
-Route::prefix('dashboard')->group(function () {
-    Route::get('/projects/{project}/overview', [DashboardController::class, 'overview']);
-    Route::get('/projects/{project}/performance', [DashboardController::class, 'performance']);
-    Route::get('/projects/{project}/insights', [DashboardController::class, 'insights']);
-    Route::get('/projects/{project}/urls', [DashboardController::class, 'urls']);
-    Route::post('/projects/{project}/sync', [DashboardController::class, 'triggerSync']);
-    Route::post('/projects/{project}/inspect-urls', [DashboardController::class, 'triggerUrlInspection']);
+// Using a prefix and middleware (ideally auth:sanctum & tenant context)
+// Note: You would normally enforce tenancy and project ownership here.
+// Adjusted back to match what the frontend dashboard was hitting recently.
+Route::prefix('dashboard/projects/{project}')->group(function () {
+    Route::get('/overview', [\App\Http\Controllers\Api\DashboardController::class, 'overview'])->name('dashboard.overview');
+    Route::get('/performance', [\App\Http\Controllers\Api\DashboardController::class, 'performance'])->name('dashboard.performance');
+    Route::get('/insights', [\App\Http\Controllers\Api\DashboardController::class, 'insights'])->name('dashboard.insights');
+    Route::post('/insights/{insight}/resolve', [\App\Http\Controllers\Api\DashboardController::class, 'resolveInsight'])->name('dashboard.insights.resolve');
+    Route::get('/urls', [\App\Http\Controllers\Api\DashboardController::class, 'urls'])->name('dashboard.urls');
+    Route::post('/sync', [\App\Http\Controllers\Api\DashboardController::class, 'triggerSync'])->name('dashboard.sync');
+    Route::post('/inspect-urls', [\App\Http\Controllers\Api\DashboardController::class, 'triggerUrlInspection'])->name('dashboard.inspect.urls');
 });
 
-// Admin global settings routes
-Route::prefix('admin')->group(function () {
-    Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index']);
-    Route::post('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update']);
-});
+// Asaas Webhooks (Public, validated via Header Token)
+Route::post('/webhooks/asaas', [\App\Http\Controllers\Api\Webhook\AsaasWebhookController::class, 'handle']);
 
-// Google OAuth Flow
-Route::get('/auth/google', [GoogleAuthController::class, 'redirect']);
-Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
+Route::prefix('billing')->middleware('auth:sanctum')->group(function () {
+    Route::get('/plans', [\App\Http\Controllers\Api\BillingController::class, 'getPlans']);
+    Route::post('/subscribe', [\App\Http\Controllers\Api\BillingController::class, 'subscribe']);
+});
