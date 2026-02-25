@@ -1,5 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import AdminLayout from '../views/admin/AdminLayout.vue'
+import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
+import AdminTenantsView from '../views/admin/AdminTenantsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,6 +22,23 @@ const router = createRouter({
       name: 'dashboard',
       component: () => import('../views/dashboard/OverviewView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      component: AdminLayout,
+      meta: { requiresAuth: true, requiresAdmin: true }, // Assuming admin routes require auth and admin role
+      children: [
+        {
+          path: '', // Default child route for /admin
+          name: 'admin-dashboard',
+          component: AdminDashboardView,
+        },
+        {
+          path: 'tenants', // /admin/tenants
+          name: 'admin-tenants',
+          component: AdminTenantsView,
+        }
+      ]
     }
   ],
 })

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref<any>(null)
+    const isAdmin = ref<boolean>(false)
     const token = ref<string | null>(localStorage.getItem('auth_token'))
     const router = useRouter()
 
@@ -23,6 +24,7 @@ export const useAuthStore = defineStore('auth', () => {
         await api.post('/auth/logout')
         token.value = null
         user.value = null
+        isAdmin.value = false
         localStorage.removeItem('auth_token')
         router.push('/login')
     }
@@ -33,15 +35,17 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await api.get('/auth/me')
             user.value = response.data
+            isAdmin.value = response.data?.role_id !== undefined // Heuristic indication of AdminUser
         } catch (e) {
             // If token is invalid/expired
             token.value = null
             user.value = null
+            isAdmin.value = false
             localStorage.removeItem('auth_token')
         }
     }
 
     const isAuthenticated = () => !!token.value
 
-    return { user, token, login, logout, fetchUser, isAuthenticated }
+    return { user, isAdmin, token, login, logout, fetchUser, isAuthenticated }
 })

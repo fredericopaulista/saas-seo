@@ -7,6 +7,7 @@ const api = axios.create({
         'Accept': 'application/json',
     },
     withCredentials: true, // required for sanctum CSRF
+    withXSRFToken: true, // Required in Axios >= 1.6 to send X-XSRF-TOKEN cleanly across origins
 })
 
 // Request interceptor to attach JWT/Bearer token if available
