@@ -85,6 +85,18 @@ class DashboardController extends Controller
             'insights' => $insights
         ]);
     }
+    
+    /**
+     * Get paginated URLs for the project.
+     */
+    public function urls(Request $request, Project $project)
+    {
+        $urls = $project->urlStatuses()
+            ->orderBy('id', 'desc')
+            ->paginate(50);
+            
+        return response()->json($urls);
+    }
 
     /**
      * Manually dispatches the Google Search Console sync job.

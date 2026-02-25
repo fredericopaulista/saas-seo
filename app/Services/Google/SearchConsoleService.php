@@ -7,6 +7,7 @@ use App\Models\SearchConsoleToken;
 use Exception;
 use Google\Client as GoogleClient;
 use Google\Service\Webmasters as GoogleWebmasters;
+use Google\Service\SearchConsole;
 use Illuminate\Support\Facades\Log;
 
 class SearchConsoleService
@@ -148,6 +149,27 @@ class SearchConsoleService
         } catch (Exception $e) {
             Log::error("Error fetching Sitemaps for project {$this->project->id}: " . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Inspect a specific URL indexation status
+     */
+    public function inspectUrl(string $url): ?\Google\Service\SearchConsole\RunRequest
+    {
+        try {
+            $service = new SearchConsole($this->client);
+            $property = $this->project->gsc_property;
+
+            $request = new \Google\Service\SearchConsole\InspectUrlIndexRequest();
+            $request->setInspectionUrl($url);
+            $request->setSiteUrl($property);
+
+            return $service->urlInspection_index->inspect($request);
+
+        } catch (Exception $e) {
+            Log::error("Error inspecting URL {$url} for project {$this->project->id}: " . $e->getMessage());
+            return null;
         }
     }
 }

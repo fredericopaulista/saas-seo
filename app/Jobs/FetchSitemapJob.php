@@ -9,6 +9,7 @@ use Exception;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Spatie\Multitenancy\Jobs\TenantAware;
 use Spatie\Multitenancy\Models\Tenant;
 
@@ -36,19 +37,60 @@ class FetchSitemapJob implements ShouldQueue, TenantAware
             $sitemaps = $gscService->fetchSitemaps();
 
             foreach ($sitemaps as $sitemap) {
-                // In a real app we would parse the sitemap XML itself to get all URLs.
-                // Here we just save the sitemap URL itself as a discovered URL for MVP scope.
-                
-                UrlStatus::updateOrCreate(
-                    [
-                        'project_id' => $this->project->id, 
-                        'url' => $sitemap['path']
-                    ],
-                    [
-                        'coverage_status' => $sitemap['errors'] > 0 ? 'Error' : 'Valid',
-                        'last_crawled' => $sitemap['last_submitted'] ? \Carbon\Carbon::parse($sitemap['last_submitted']) : now(),
-                    ]
-                );
+                // Process standard sitemaps
+                try {
+                    $sitemapUrl = $sitemap['path'];
+                    $response = Http::timeout(15)->get($sitemapUrl);
+                    
+                    if ($response->successful()) {
+                        $xml = simplexml_load_string($response->body());
+                        
+                        if ($xml !== false) {
+                            $urls = [];
+                            
+                            // Handle standard <urlset>
+                            if (isset($xml->url)) {
+                                foreach ($xml->url as $urlNode) {
+                                    $urls[] = (string) $urlNode->loc;
+                                }
+                            } 
+                            // Handle sitemap indexes <sitemapindex>
+                            else if (isset($xml->sitemap)) {
+                                foreach ($xml->sitemap as $sitemapNode) {
+                                    $subSitemapUrl = (string) $sitemapNode->loc;
+                                    $subRes = Http::timeout(15)->get($subSitemapUrl);
+                                    if ($subRes->successful()) {
+                                        $subXml = simplexml_load_string($subRes->body());
+                                        if ($subXml !== false && isset($subXml->url)) {
+                                            foreach ($subXml->url as $urlNode) {
+                                                $urls[] = (string) $urlNode->loc;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            foreach ($urls as $url) {
+                                if (filter_var($url, FILTER_VALIDATE_URL)) {
+                                    // Make sure it doesn't overwrite index_status to keep historical data intact
+                                    UrlStatus::firstOrCreate(
+                                        [
+                                            'project_id' => $this->project->id, 
+                                            'url' => $url
+                                        ],
+                                        [
+                                            'coverage_status' => 'Pending',
+                                            'index_status' => 'Pending',
+                                            'last_crawled' => now()->subDay(), // Force early check on next run
+                                        ]
+                                    );
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception $xmlErr) {
+                    Log::error("Failed to parse sitemap XML for {$sitemapUrl}: " . $xmlErr->getMessage());
+                }
             }
 
             Log::info("Sitemap fetch completed for project {$this->project->id}");

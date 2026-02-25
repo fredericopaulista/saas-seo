@@ -18,6 +18,8 @@ const urlStats = ref<any>(null)
 const performanceData = ref<any>(null)
 const chartData = ref<any[]>([])
 const insights = ref<any[]>([])
+const urls = ref<any[]>([])
+const urlsPagination = ref<any>({ current_page: 1, last_page: 1 })
 
 const activeTab = ref('traffic')
 
@@ -47,12 +49,30 @@ const fetchProjectDetails = async () => {
             return (severityMap[b.severity] || 0) - (severityMap[a.severity] || 0)
         })
         
+        // 4. Fetch URLs
+        await fetchUrls(1)
+        
     } catch (e) {
         console.error('Failed to load project details', e)
         alert('Não foi possível carregar os detalhes do projeto ou você não tem acesso a ele.')
         router.push('/dashboard/projects')
     } finally {
         loading.value = false
+    }
+}
+
+const fetchUrls = async (page: number = 1) => {
+    try {
+        const pId = route.params.id
+        const res = await api.get(`/dashboard/projects/${pId}/urls?page=${page}`)
+        urls.value = res.data.data
+        urlsPagination.value = {
+            current_page: res.data.current_page,
+            last_page: res.data.last_page,
+            total: res.data.total
+        }
+    } catch (e) {
+        console.error('Failed to load urls', e)
     }
 }
 
@@ -249,6 +269,14 @@ const forceSync = async () => {
                 <Lightbulb class="w-4 h-4" /> Tarefas IA Insights
                 <span v-if="insights.length" class="ml-1 bg-purple-500/20 text-purple-400 py-0.5 px-2 rounded-full text-xs">{{ insights.length }}</span>
             </button>
+            <button 
+                @click="activeTab = 'urls'" 
+                :class="activeTab === 'urls' ? 'text-white border-b-2 border-blue-500 pb-4 -mb-px font-bold' : 'text-gray-500 border-b-2 border-transparent pb-4 -mb-px font-medium hover:text-gray-300'"
+                class="flex items-center gap-2 transition-colors uppercase tracking-wider text-sm"
+            >
+                <Layers class="w-4 h-4" /> Páginas do Site
+                <span v-if="urlsPagination?.total" class="ml-1 bg-blue-500/20 text-blue-400 py-0.5 px-2 rounded-full text-xs">{{ urlsPagination.total }}</span>
+            </button>
         </div>
 
         <!-- Content Area -->
@@ -319,6 +347,68 @@ const forceSync = async () => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- URLs Indexation Tab -->
+            <div v-if="activeTab === 'urls'" class="bg-[#0A0A0A]/40 rounded-3xl border border-white/5 p-8 backdrop-blur-md shadow-2xl relative overflow-hidden">
+                <div class="flex justify-between items-center mb-6 relative z-10">
+                    <h3 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                        <span>Páginas & Indexação no Google</span>
+                    </h3>
+                </div>
+
+                <div class="relative z-10 w-full overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5 text-gray-500 text-xs uppercase tracking-widest bg-white/[0.02]">
+                                <th class="p-4 font-black">URL</th>
+                                <th class="p-4 font-black">Indexação</th>
+                                <th class="p-4 font-black">Erro / Cobertura</th>
+                                <th class="p-4 font-black w-40 text-right">Último Rastreio</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr v-for="url in urls" :key="url.id" class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <td class="p-4 text-gray-300 truncate max-w-sm" :title="url.url">{{ url.url }}</td>
+                                <td class="p-4">
+                                    <span v-if="url.index_status === 'Indexed'" class="inline-flex items-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 animate-pulse"></div> Indexada
+                                    </span>
+                                    <span v-else-if="url.index_status === 'Discovered'" class="inline-flex items-center bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider">
+                                       Descoberta (Pend.)
+                                    </span>
+                                    <span v-else-if="url.index_status === 'Error'" class="inline-flex items-center bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider">
+                                       Não Indexada
+                                    </span>
+                                    <span v-else class="text-gray-500 text-xs uppercase font-bold">{{ url.index_status }}</span>
+                                </td>
+                                <td class="p-4 text-gray-400 text-xs font-mono">{{ url.coverage_status }}</td>
+                                <td class="p-4 text-right text-gray-500">{{ new Date(url.last_crawled).toLocaleDateString() }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div v-if="urls.length === 0" class="text-center py-10 text-gray-500">
+                        Nenhuma URL detectada para este projeto ainda. O Sitemap pode estar processando.
+                    </div>
+
+                    <!-- Pagination -->
+                    <div v-if="urlsPagination.last_page > 1" class="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+                        <button 
+                            @click="fetchUrls(urlsPagination.current_page - 1)" 
+                            :disabled="urlsPagination.current_page === 1"
+                            class="px-4 py-2 border border-white/10 rounded-xl bg-white/5 text-gray-400 text-sm font-bold hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            Anterior
+                        </button>
+                        <span class="text-sm font-medium text-gray-500">Apresentando página <span class="text-white">{{ urlsPagination.current_page }}</span> de <span class="text-white">{{ urlsPagination.last_page }}</span></span>
+                        <button 
+                            @click="fetchUrls(urlsPagination.current_page + 1)" 
+                            :disabled="urlsPagination.current_page === urlsPagination.last_page"
+                            class="px-4 py-2 border border-white/10 rounded-xl bg-white/5 text-gray-400 text-sm font-bold hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            Próxima
+                        </button>
                     </div>
                 </div>
             </div>

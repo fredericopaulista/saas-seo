@@ -32,8 +32,11 @@ class SyncProjectDataJob implements ShouldQueue, TenantAware
 
         // 1. Dispatch Sitemaps Fetcher Job
         FetchSitemapJob::dispatch($this->project);
+        
+        // 2. Dispatch URL Inspector (Rate limited to chunks of 50 automatically inside)
+        InspectUrlsJob::dispatch($this->project);
 
-        // 2. Dispatch Search Analytics Fetcher Job
+        // 3. Dispatch Search Analytics Fetcher Job
         FetchSearchAnalyticsJob::dispatch($this->project);
 
         // 3. Dispatch SEO Score Recalculation (ideally this runs after the ones above, using chain or batch)
