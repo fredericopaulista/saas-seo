@@ -23,16 +23,10 @@ const handleLogout = async () => {
   await authStore.logout()
 }
 
-// Temporary manual project switch logic based on Mock (in reality we fetch array of projects)
-const availableProjects = ref([
-  { id: 1, name: 'SaaS Alpha' },
-  // { id: 2, name: 'Blog Beta' }
-])
-
-onMounted(() => {
-  // Simulating auto-selection of the first project
-  if (availableProjects.value.length > 0) {
-    dashboardStore.setActiveProject(availableProjects.value[0].id)
+// We fetch user's projects when the component mounts
+onMounted(async () => {
+  if (dashboardStore.projects.length === 0) {
+    await dashboardStore.fetchProjects()
   }
 })
 
@@ -46,48 +40,7 @@ const seoScoreClass = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
-    
-    <!-- Navbar -->
-    <nav class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <LineChart class="h-8 w-8 text-primary-600" />
-              <span class="ml-2 text-xl font-bold text-gray-900 tracking-tight">SaaS SEO</span>
-            </div>
-          </div>
-          <div class="flex items-center space-x-6">
-            
-            <div class="flex items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1">
-              <span class="text-sm text-gray-500 mr-2">Projeto:</span>
-              <select 
-                class="bg-transparent text-sm font-medium focus:ring-0 focus:outline-none"
-                v-model="dashboardStore.activeProjectId"
-                @change="dashboardStore.fetchAllData(Number(($event.target as HTMLSelectElement).value))"
-              >
-                <option v-for="proj in availableProjects" :key="proj.id" :value="proj.id">
-                  {{ proj.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="h-6 w-px bg-gray-300"></div>
-
-            <div class="text-sm font-medium text-gray-700" v-if="authStore.user">
-              {{ authStore.user?.name }}
-            </div>
-            <button @click="handleLogout" class="text-sm text-red-600 hover:text-red-800 font-semibold transition-colors">
-              Sair
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="flex-1 max-w-7xl w-full mx-auto py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
       
       <!-- Loading State -->
       <div v-if="dashboardStore.loading" class="flex flex-col items-center justify-center py-20">
@@ -108,9 +61,24 @@ const seoScoreClass = computed(() => {
       <div v-else-if="dashboardStore.overview" class="space-y-6">
         
         <!-- Headers -->
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">Dashboard SEO</h1>
-          <p class="text-sm text-gray-500 mt-1">Visão geral para {{ dashboardStore.overview.project.domain }}</p>
+        <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Dashboard SEO</h1>
+            <p class="text-sm text-gray-500 mt-1">Visão geral para {{ dashboardStore.overview.project.domain }}</p>
+          </div>
+          
+           <div class="flex items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+              <span class="text-sm text-gray-500 mr-2">Trocar Projeto:</span>
+              <select 
+                class="bg-transparent text-sm font-medium focus:ring-0 focus:outline-none"
+                v-model="dashboardStore.activeProjectId"
+                @change="dashboardStore.setActiveProject(Number(($event.target as HTMLSelectElement).value))"
+              >
+                <option v-for="proj in dashboardStore.projects" :key="proj.id" :value="proj.id">
+                  {{ proj.name }}
+                </option>
+              </select>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -230,6 +198,5 @@ const seoScoreClass = computed(() => {
         </div>
         
       </div>
-    </main>
   </div>
 </template>

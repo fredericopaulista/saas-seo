@@ -11,6 +11,19 @@ export const useDashboardStore = defineStore('dashboard', () => {
     const insights = ref<any[]>([])
 
     const activeProjectId = ref<number | null>(null)
+    const projects = ref<any[]>([])
+
+    const fetchProjects = async () => {
+        try {
+            const { data } = await api.get('/projects')
+            projects.value = data
+            if (data.length > 0 && !activeProjectId.value) {
+                setActiveProject(data[0].id)
+            }
+        } catch (err) {
+            console.error('Falha ao buscar projetos', err)
+        }
+    }
 
     const setActiveProject = (projectId: number) => {
         activeProjectId.value = projectId
@@ -49,7 +62,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
         performance,
         insights,
         activeProjectId,
+        projects,
         setActiveProject,
-        fetchAllData
+        fetchAllData,
+        fetchProjects
     }
 })

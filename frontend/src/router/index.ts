@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AdminLayout from '../views/admin/AdminLayout.vue'
+import DashboardLayout from '../views/dashboard/DashboardLayout.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminTenantsView from '../views/admin/AdminTenantsView.vue'
 import AdminPlansView from '../views/admin/AdminPlansView.vue'
@@ -22,15 +23,20 @@ const router = createRouter({
     },
     {
       path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('../views/dashboard/OverviewView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/dashboard/projects',
-      name: 'projects',
-      component: () => import('../views/dashboard/ProjectsView.vue'),
-      meta: { requiresAuth: true }
+      component: DashboardLayout,
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '', // Defaults to overview
+          name: 'dashboard',
+          component: () => import('../views/dashboard/OverviewView.vue'),
+        },
+        {
+          path: 'projects',
+          name: 'projects',
+          component: () => import('../views/dashboard/ProjectsView.vue'),
+        }
+      ]
     },
     {
       path: '/pricing',
