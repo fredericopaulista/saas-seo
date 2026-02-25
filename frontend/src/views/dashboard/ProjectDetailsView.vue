@@ -4,8 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { 
     Activity, ArrowUpRight, TrendingUp, Search, Layers, 
-    ChevronLeft, Settings, RefreshCcw, ExternalLink
+    ChevronLeft, Settings, RefreshCcw, ExternalLink, Lightbulb, BarChart3, AlertTriangle
 } from 'lucide-vue-next'
+import PerformanceChart from '@/components/PerformanceChart.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,7 +16,10 @@ const project = ref<any>(null)
 const seoScore = ref<any>(null)
 const urlStats = ref<any>(null)
 const performanceData = ref<any>(null)
+const chartData = ref<any[]>([])
 const insights = ref<any[]>([])
+
+const activeTab = ref('traffic')
 
 const syncError = ref<string | null>(null)
 const showReconnect = ref(false)
@@ -34,10 +38,14 @@ const fetchProjectDetails = async () => {
         // 2. Fetch Performance
         const perfRes = await api.get(`/dashboard/projects/${pId}/performance`)
         performanceData.value = perfRes.data.totals
+        chartData.value = perfRes.data.chart_data || []
         
-        // 3. Fetch Insights
+        // 3. Fetch Insights and sort by Severity (High>Medium>Low)
         const insightsRes = await api.get(`/dashboard/projects/${pId}/insights`)
-        insights.value = insightsRes.data.insights
+        const severityMap: Record<string, number> = { 'High': 3, 'Medium': 2, 'Low': 1 }
+        insights.value = (insightsRes.data.insights || []).sort((a: any, b: any) => {
+            return (severityMap[b.severity] || 0) - (severityMap[a.severity] || 0)
+        })
         
     } catch (e) {
         console.error('Failed to load project details', e)
@@ -224,56 +232,93 @@ const forceSync = async () => {
             
         </div>
 
-        <!-- Two Column Layout: Charts & Insights -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Tabs Navigation -->
+        <div class="flex items-center gap-6 border-b border-gray-800 pb-px mb-6 mt-4">
+            <button 
+                @click="activeTab = 'traffic'" 
+                :class="activeTab === 'traffic' ? 'text-white border-b-2 border-indigo-500 pb-4 -mb-px font-bold' : 'text-gray-500 border-b-2 border-transparent pb-4 -mb-px font-medium hover:text-gray-300'"
+                class="flex items-center gap-2 transition-colors uppercase tracking-wider text-sm"
+            >
+                <BarChart3 class="w-4 h-4" /> Evolução de Tráfego
+            </button>
+            <button 
+                @click="activeTab = 'insights'" 
+                :class="activeTab === 'insights' ? 'text-white border-b-2 border-purple-500 pb-4 -mb-px font-bold' : 'text-gray-500 border-b-2 border-transparent pb-4 -mb-px font-medium hover:text-gray-300'"
+                class="flex items-center gap-2 transition-colors uppercase tracking-wider text-sm"
+            >
+                <Lightbulb class="w-4 h-4" /> Tarefas IA Insights
+                <span v-if="insights.length" class="ml-1 bg-purple-500/20 text-purple-400 py-0.5 px-2 rounded-full text-xs">{{ insights.length }}</span>
+            </button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="grid grid-cols-1 gap-8">
             
-            <!-- Left Axis (Fake Chart Area) -->
-            <div class="lg:col-span-2 bg-[#0A0A0A]/40 rounded-3xl border border-white/5 p-8 backdrop-blur-md shadow-2xl relative overflow-hidden flex flex-col min-h-[400px]">
+            <!-- Traffic Tab -->
+            <div v-if="activeTab === 'traffic'" class="bg-[#0A0A0A]/40 rounded-3xl border border-white/5 p-8 backdrop-blur-md shadow-2xl relative overflow-hidden flex flex-col min-h-[400px]">
                  <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
                  
                  <div class="flex justify-between items-center mb-6 relative z-10">
                     <h3 class="text-xl font-bold text-white tracking-tight">Evolução do Tráfego Orgânico</h3>
                     <select class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500 appearance-none pr-8">
                         <option value="30">Últimos 30 dias</option>
-                        <option value="90">Últimos 90 dias</option>
                     </select>
                 </div>
 
-                <div class="flex-1 flex items-center justify-center border border-white/5 rounded-2xl bg-white/5 relative z-10">
-                    <!-- Note: In real app, integrate vue-chartjs here like in OverviewView -->
-                    <p class="text-gray-500 font-medium flex flex-col items-center gap-2">
-                        <Activity class="w-8 h-8 opacity-50" />
-                        Nenhum gráfico processado ainda. O crôn ira popular.
-                    </p>
+                <div class="flex-1 w-full h-[400px] relative z-10 bg-white/5 rounded-2xl border border-white/5 p-4">
+                    <PerformanceChart :chart-data="chartData" />
                 </div>
             </div>
 
-            <!-- AI Insights Feed -->
-            <div class="bg-[#0A0A0A]/40 rounded-3xl border border-white/5 p-8 backdrop-blur-md shadow-2xl relative overflow-hidden">
+            <!-- AI Insights Tab -->
+            <div v-if="activeTab === 'insights'" class="bg-[#0A0A0A]/40 rounded-3xl border border-white/5 p-8 backdrop-blur-md shadow-2xl relative overflow-hidden">
                 <div class="flex justify-between items-center mb-6 relative z-10">
-                    <h3 class="text-xl font-bold text-white tracking-tight">IA Insights</h3>
-                    <div class="w-3 h-3 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.8)]"></div>
+                    <h3 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                        <span>Recomendações Pendentes</span>
+                    </h3>
+                    <div class="w-3 h-3 rounded-full bg-purple-500 animate-pulse shadow-[0_0_10px_rgba(168,85,247,0.8)]"></div>
                 </div>
 
                 <div class="space-y-4 relative z-10">
-                    <div v-if="insights.length === 0" class="text-center py-8">
-                        <p class="text-sm text-gray-500">O robô não detectou anomalias no projeto {{ project.name }} hoje.</p>
+                    <div v-if="insights.length === 0" class="text-center py-16 bg-white/5 rounded-2xl border border-white/5">
+                        <Lightbulb class="w-12 h-12 text-gray-600 mx-auto mb-4 opacity-50" />
+                        <h4 class="text-lg font-bold text-gray-300">Nenhuma tarefa pendente</h4>
+                        <p class="text-sm text-gray-500 mt-2">O robô de inteligência artificial não detectou problemas ou oportunidades que exigem ação hoje.</p>
                     </div>
 
-                    <div v-for="insight in insights" :key="insight.id" class="p-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors group">
-                        <div class="flex items-start justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border mb-2" 
-                                :class="{
-                                    'text-red-400 border-red-400/20 bg-red-400/10': insight.priority === 'High',
-                                    'text-amber-400 border-amber-400/20 bg-amber-400/10': insight.priority === 'Medium',
-                                    'text-emerald-400 border-emerald-400/20 bg-emerald-400/10': insight.priority === 'Low'
-                                }">
-                                {{ insight.priority }} Priority
-                            </span>
-                            <span class="text-xs text-gray-600 font-medium">{{ new Date(insight.created_at).toLocaleDateString() }}</span>
+                    <div v-for="(insight, index) in insights" :key="insight.id" class="p-6 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors group flex gap-4 items-start">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border shadow-lg"
+                             :class="{
+                                'text-red-400 border-red-500/30 bg-red-500/10': insight.severity === 'High',
+                                'text-amber-400 border-amber-500/30 bg-amber-500/10': insight.severity === 'Medium',
+                                'text-emerald-400 border-emerald-500/30 bg-emerald-500/10': insight.severity === 'Low'
+                             }">
+                            {{ index + 1 }}
                         </div>
-                        <h4 class="font-bold text-white text-sm mt-1 leading-snug">{{ insight.title }}</h4>
-                        <p class="text-sm text-gray-400 mt-2 leading-relaxed line-clamp-2 group-hover:line-clamp-none transition-all">{{ insight.description }}</p>
+
+                        <div class="flex-1">
+                            <div class="flex items-start justify-between">
+                                <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded border mb-2 flex items-center gap-1 w-fit" 
+                                    :class="{
+                                        'text-red-400 border-red-400/20 bg-red-400/10': insight.severity === 'High',
+                                        'text-amber-400 border-amber-400/20 bg-amber-400/10': insight.severity === 'Medium',
+                                        'text-emerald-400 border-emerald-400/20 bg-emerald-400/10': insight.severity === 'Low'
+                                    }">
+                                    <AlertTriangle v-if="insight.severity === 'High'" class="w-3 h-3" />
+                                    Prioridade {{ insight.severity === 'High' ? 'Alta' : (insight.severity === 'Medium' ? 'Média' : 'Baixa') }}
+                                </span>
+                                <span class="text-xs text-gray-500 font-medium whitespace-nowrap">{{ new Date(insight.created_at).toLocaleDateString() }}</span>
+                            </div>
+                            <h4 class="font-bold text-white text-lg mt-1 leading-snug">{{ insight.title }}</h4>
+                            <p class="text-sm text-gray-400 mt-2 leading-relaxed whitespace-pre-line">{{ insight.description }}</p>
+
+                            <!-- Example actionable button slot for future -->
+                            <div class="mt-4 flex gap-2">
+                                <button class="text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
+                                    Marcar como Resolvido
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
