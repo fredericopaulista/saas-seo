@@ -84,9 +84,15 @@ EOT;
 
             $content = trim($response->choices[0]->message->content);
             
-            // Clean markdown syntax if AI still injects it
-            $content = str_replace(['```json', '```'], '', $content);
-            $parsedInsights = json_decode($content, true);
+            // Extract the JSON array using regex in case OpenAI adds conversational text or markdown code blocks
+            preg_match('/\[.*\]/s', $content, $matches);
+            
+            if (isset($matches[0])) {
+                $parsedInsights = json_decode($matches[0], true);
+            } else {
+                // Fallback to decode the whole content if regex fails
+                $parsedInsights = json_decode($content, true);
+            }
 
             if (is_array($parsedInsights)) {
                 foreach ($parsedInsights as $insightData) {
