@@ -130,4 +130,24 @@ class DashboardController extends Controller
             'message' => 'Sincronização agendada na fila com sucesso. Os dados devem aparecer em alguns minutos.'
         ]);
     }
+
+    /**
+     * Manually dispatches the Google URL Inspection job.
+     */
+    public function triggerUrlInspection(Request $request, Project $project)
+    {
+        if ($project->tenant) {
+            $project->tenant->makeCurrent();
+        }
+
+        try {
+            \App\Jobs\InspectUrlsJob::dispatch($project);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erro interno ao iniciar inspeção: ' . $e->getMessage()], 500);
+        }
+
+        return response()->json([
+            'message' => 'Verificação de URLs agendada na fila com sucesso. A tabela será atualizada em breve.'
+        ]);
+    }
 }

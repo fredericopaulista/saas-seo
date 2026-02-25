@@ -135,6 +135,17 @@ const forceSync = async () => {
         }
     }
 }
+
+const forceUrlInspection = async () => {
+    if (!project.value) return
+    try {
+        const res = await api.post(`/dashboard/projects/${project.value.id}/inspect-urls`)
+        alert(res.data.message)
+    } catch (e: any) {
+        console.error(e)
+        alert(e.response?.data?.error || 'Erro ao agendar verificação de URLs.')
+    }
+}
 </script>
 
 <template>
@@ -384,10 +395,15 @@ const forceSync = async () => {
             
             <!-- URLs Indexation Tab -->
             <div v-if="activeTab === 'urls'" class="bg-[#0A0A0A]/40 rounded-3xl border border-white/5 p-8 backdrop-blur-md shadow-2xl relative overflow-hidden">
-                <div class="flex justify-between items-center mb-6 relative z-10">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 relative z-10 gap-4">
                     <h3 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
                         <span>Páginas & Indexação no Google</span>
                     </h3>
+                    
+                    <button @click="forceUrlInspection" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]">
+                        <Search class="w-4 h-4" />
+                        Verificar Indexação Pendente
+                    </button>
                 </div>
 
                 <div class="relative z-10 w-full overflow-x-auto">

@@ -9,10 +9,6 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Basic API Auth routes block for later usage or Sanctum...
-// Route::post('/login', [AuthController::class, 'login']);
-// Route::post('/register', [AuthController::class, 'register']);
-
 // Using simple group without full auth to simplify boilerplate for MVP demonstration
 // Replace with middleware('auth:sanctum') in secure production wrapper
 Route::prefix('dashboard')->group(function () {
@@ -22,6 +18,7 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/projects/{project}/insights', [DashboardController::class, 'insights']);
     Route::get('/projects/{project}/urls', [DashboardController::class, 'urls']);
     Route::post('/projects/{project}/sync', [DashboardController::class, 'triggerSync']);
+    Route::post('/projects/{project}/inspect-urls', [DashboardController::class, 'triggerUrlInspection']);
 });
 
 // Admin global settings routes
