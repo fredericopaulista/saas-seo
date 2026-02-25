@@ -6,8 +6,10 @@ use App\Models\Project;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Spatie\Multitenancy\Jobs\TenantAware;
+use Spatie\Multitenancy\Models\Tenant;
 
-class SyncProjectDataJob implements ShouldQueue
+class SyncProjectDataJob implements ShouldQueue, TenantAware
 {
     use Queueable;
 
