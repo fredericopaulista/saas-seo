@@ -14,7 +14,9 @@ Route::get('/user', function (Request $request) {
 
 // Projects Management
 // Using apiResource creates GET /projects, POST /projects, DELETE /projects/{project} etc.
-Route::apiResource('/projects', \App\Http\Controllers\Api\ProjectController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/projects', \App\Http\Controllers\Api\ProjectController::class);
+});
 
 Route::prefix('dashboard')->group(function () {
     Route::get('/projects/{project}/overview', [DashboardController::class, 'overview']);
