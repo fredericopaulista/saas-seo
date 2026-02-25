@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const login = async (credentials: any) => {
         // CSRF initialization for Sanctum
-        await api.get('http://localhost:8000/sanctum/csrf-cookie')
+        await api.get('/sanctum/csrf-cookie')
 
         const response = await api.post('/auth/login', credentials)
         token.value = response.data.access_token

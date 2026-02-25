@@ -88,7 +88,7 @@ const handleLogin = async () => {
           <p class="text-gray-500 mt-4">
             Ou acesse usando o Google:
           </p>
-          <a href="http://localhost:8000/api/auth/google" class="mt-2 text-primary-600 hover:text-primary-500 font-medium inline-block">
+          <a href="/api/auth/google" class="mt-2 text-primary-600 hover:text-primary-500 font-medium inline-block">
             Login via Google Search Console
           </a>
         </div>

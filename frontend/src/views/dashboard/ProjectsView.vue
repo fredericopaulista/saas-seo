@@ -140,7 +140,7 @@ const deleteProject = async (id: number) => {
             <div class="mt-8 flex flex-col gap-3 relative z-10">
                 <a 
                     v-if="!project.search_console_token"
-                    :href="`http://localhost:8000/api/auth/google?project_id=${project.id}`" 
+                    :href="`/api/auth/google?project_id=${project.id}`" 
                     target="_blank"
                     class="w-full text-center bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 py-3 rounded-xl text-sm font-bold transition duration-300 border border-indigo-500/20 shadow-inner"
                 >
