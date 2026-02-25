@@ -74,6 +74,16 @@ const deletePlan = async (id: number) => {
     }
 }
 
+const translateCycle = (cycle: string) => {
+    const map: Record<string, string> = {
+        'MONTHLY': 'mês',
+        'BIMONTHLY': 'bimestre',
+        'QUARTERLY': 'trimestre',
+        'SEMIANNUALLY': 'semestre',
+        'YEARLY': 'ano'
+    }
+    return map[cycle] || 'mês'
+}
 </script>
 
 <template>
@@ -101,7 +111,7 @@ const deletePlan = async (id: number) => {
         <div v-for="plan in plans" :key="plan.id" class="bg-gray-900 border border-gray-800 rounded-xl p-6 relative">
           <div class="flex justify-between items-start mb-4">
             <h3 class="font-bold text-lg text-white">{{ plan.name }}</h3>
-            <span class="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">R$ {{ plan.price }} / {{ plan.billing_cycle }}</span>
+            <span class="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">R$ {{ plan.price }} / {{ translateCycle(plan.billing_cycle) }}</span>
           </div>
           <div class="text-sm text-gray-500 mb-6">Slug: {{ plan.slug }}</div>
           
