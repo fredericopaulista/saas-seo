@@ -9,6 +9,7 @@ const saving = ref(false)
 const settings = ref({
     GOOGLE_CLIENT_ID: '',
     GOOGLE_CLIENT_SECRET: '',
+    GOOGLE_REDIRECT_URI: '',
     OPENAI_API_KEY: ''
 })
 
@@ -25,6 +26,7 @@ const fetchSettings = async () => {
             data.google_oauth.forEach((item: any) => {
                 if (item.key === 'GOOGLE_CLIENT_ID') settings.value.GOOGLE_CLIENT_ID = item.value || ''
                 if (item.key === 'GOOGLE_CLIENT_SECRET') settings.value.GOOGLE_CLIENT_SECRET = item.value || ''
+                if (item.key === 'GOOGLE_REDIRECT_URI') settings.value.GOOGLE_REDIRECT_URI = item.value || ''
             })
         }
         if (data.ai_services) {
@@ -52,6 +54,11 @@ const saveSettings = async () => {
                 {
                     key: 'GOOGLE_CLIENT_SECRET',
                     value: settings.value.GOOGLE_CLIENT_SECRET,
+                    group: 'google_oauth'
+                },
+                {
+                    key: 'GOOGLE_REDIRECT_URI',
+                    value: settings.value.GOOGLE_REDIRECT_URI,
                     group: 'google_oauth'
                 },
                 {
@@ -126,6 +133,17 @@ const saveSettings = async () => {
                         placeholder="Ex: GOCSPX-12345678abcdefg" 
                         class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
                     >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Google Redirect URI</label>
+                    <input 
+                        v-model="settings.GOOGLE_REDIRECT_URI" 
+                        type="text" 
+                        placeholder="Ex: https://advogados.emp.br/api/auth/google/callback" 
+                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
+                    >
+                    <p class="text-xs text-gray-500 mt-1">Geralmente é <code>https://SEU_DOMINIO/api/auth/google/callback</code></p>
                 </div>
                 
                 <div class="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-4 rounded-lg text-sm flex gap-3 items-start">

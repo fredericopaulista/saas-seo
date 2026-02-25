@@ -31,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
                 if ($googleSettings->has('GOOGLE_CLIENT_SECRET')) {
                     config(['services.google.client_secret' => $googleSettings['GOOGLE_CLIENT_SECRET']]);
                 }
+                
+                if ($googleSettings->has('GOOGLE_REDIRECT_URI')) {
+                    config(['services.google.redirect' => $googleSettings['GOOGLE_REDIRECT_URI']]);
+                }
             }
         } catch (\Exception $e) {
             // Database might not be set up yet or settings table is missing
