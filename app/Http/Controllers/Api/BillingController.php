@@ -32,8 +32,16 @@ class BillingController extends Controller
     public function mySubscription()
     {
         $tenantId = auth()->user()->current_tenant_id;
+        
+        // Fallback robust resolution if session tokens are misaligned
         if (!$tenantId) {
-            return response()->json(['subscription' => null]);
+            $firstTenant = auth()->user()->tenants()->first();
+            if ($firstTenant) {
+                $tenantId = $firstTenant->id;
+                auth()->user()->update(['current_tenant_id' => $tenantId]);
+            } else {
+                return response()->json(['subscription' => null]);
+            }
         }
 
         $subscription = Subscription::with('plan')
@@ -56,7 +64,11 @@ class BillingController extends Controller
         ]);
 
         $user = auth()->user();
-        $tenantId = $user->current_tenant_id; 
+        $tenantId = $user->current_tenant_id;
+        if (!$tenantId && $user->tenants()->exists()) {
+            $tenantId = $user->tenants()->first()->id;
+            $user->update(['current_tenant_id' => $tenantId]);
+        }
 
         // Prevent double subscribing active plans if trying to subscribe to the same plan
         $activeSubscription = Subscription::where('tenant_id', $tenantId)
@@ -128,6 +140,13 @@ class BillingController extends Controller
     public function cancelSubscription()
     {
         $tenantId = auth()->user()->current_tenant_id;
+        if (!$tenantId) {
+            $firstTenant = auth()->user()->tenants()->first();
+            if ($firstTenant) {
+                $tenantId = $firstTenant->id;
+                auth()->user()->update(['current_tenant_id' => $tenantId]);
+            }
+        }
         
         $activeSubscription = Subscription::where('tenant_id', $tenantId)
             ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])

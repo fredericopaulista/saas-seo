@@ -37,10 +37,17 @@ class ProjectController extends Controller
             'gsc_property' => 'required|string|max:255',
         ]);
 
-        $tenantId = $request->user()->current_tenant_id;
+        $user = $request->user();
+        $tenantId = $user->current_tenant_id;
         
         if (!$tenantId) {
-            return response()->json(['message' => 'Nenhum espaço de trabalho ativo encontrado.'], 403);
+            $firstTenant = $user->tenants()->first();
+            if ($firstTenant) {
+                $tenantId = $firstTenant->id;
+                $user->update(['current_tenant_id' => $tenantId]);
+            } else {
+                return response()->json(['message' => 'Nenhum espaço de trabalho ativo encontrado.'], 403);
+            }
         }
 
         // Project limits enforcement
