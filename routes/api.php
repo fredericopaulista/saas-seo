@@ -42,8 +42,9 @@ Route::prefix('dashboard/projects/{project}')->group(function () {
 // Asaas Webhooks (Public, validated via Header Token)
 Route::post('/webhooks/asaas', [\App\Http\Controllers\Api\Webhook\AsaasWebhookController::class, 'handle']);
 
+Route::get('billing/plans', [\App\Http\Controllers\Api\BillingController::class, 'getPlans']);
+
 Route::prefix('billing')->middleware('auth:sanctum')->group(function () {
-    Route::get('/plans', [\App\Http\Controllers\Api\BillingController::class, 'getPlans']);
     Route::get('/my-subscription', [\App\Http\Controllers\Api\BillingController::class, 'mySubscription']);
     Route::post('/subscribe', [\App\Http\Controllers\Api\BillingController::class, 'subscribe']);
     Route::post('/cancel', [\App\Http\Controllers\Api\BillingController::class, 'cancelSubscription']);
