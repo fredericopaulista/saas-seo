@@ -8,6 +8,7 @@ import AdminPlansView from '../views/admin/AdminPlansView.vue'
 import AdminBillingView from '../views/admin/AdminBillingView.vue'
 import AdminSystemView from '../views/admin/AdminSystemView.vue'
 import AdminSettingsView from '../views/admin/AdminSettingsView.vue'
+import WebhookHistoryView from '../views/admin/WebhookHistoryView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -92,6 +93,11 @@ const router = createRouter({
           path: 'settings', // /admin/settings
           name: 'admin-settings',
           component: AdminSettingsView,
+        },
+        {
+          path: 'webhooks', // /admin/webhooks
+          name: 'admin-webhooks',
+          component: WebhookHistoryView,
         }
       ]
     }

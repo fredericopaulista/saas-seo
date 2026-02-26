@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { LayoutDashboard, Users, CreditCard, Settings, LogOut, Activity } from 'lucide-vue-next'
+import { LayoutDashboard, Users, CreditCard, Settings, LogOut, Activity, History } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -53,6 +53,11 @@ const logout = async () => {
         <router-link to="/admin/settings" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" active-class="bg-gray-800 text-white border-l-4 border-red-500">
           <Settings class="w-5 h-5" />
           <span>Configurações Globais</span>
+        </router-link>
+
+        <router-link to="/admin/webhooks" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" active-class="bg-gray-800 text-white border-l-4 border-red-500">
+          <History class="w-5 h-5 text-emerald-400" />
+          <span>Histórico Webhooks</span>
         </router-link>
       </nav>
 

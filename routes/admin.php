@@ -42,4 +42,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.permission'])->group(
     // Global Settings
     Route::get('/settings', [\App\Http\Controllers\Api\Admin\SettingController::class, 'index']);
     Route::post('/settings', [\App\Http\Controllers\Api\Admin\SettingController::class, 'store']);
+
+    // Webhook History
+    Route::get('/webhooks', [\App\Http\Controllers\Api\Admin\WebhookEventController::class, 'index']);
+    Route::get('/webhooks/{id}', [\App\Http\Controllers\Api\Admin\WebhookEventController::class, 'show']);
+    Route::delete('/webhooks/{id}', [\App\Http\Controllers\Api\Admin\WebhookEventController::class, 'destroy']);
 });
