@@ -61,7 +61,7 @@ class BillingController extends Controller
         $request->validate([
             'plan_id' => 'required|exists:plans,id',
             'billingType' => 'required|in:CREDIT_CARD,PIX,BOLETO',
-            'cpfCnpj' => 'required|string|min:11'
+            'cpfCnpj' => 'nullable|string|min:11'
         ]);
 
         $user = auth()->user();
