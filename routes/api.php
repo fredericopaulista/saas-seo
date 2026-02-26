@@ -49,3 +49,12 @@ Route::prefix('billing')->middleware('auth:sanctum')->group(function () {
     Route::post('/subscribe', [\App\Http\Controllers\Api\BillingController::class, 'subscribe']);
     Route::post('/cancel', [\App\Http\Controllers\Api\BillingController::class, 'cancelSubscription']);
 });
+
+// Admin — Webhook Management (restricted to auth users; add admin middleware as needed)
+Route::prefix('admin/billing')->middleware('auth:sanctum')->group(function () {
+    Route::post('/register-webhook', [\App\Http\Controllers\Api\Admin\AdminWebhookController::class, 'register'])
+        ->name('admin.webhook.register');
+    Route::get('/webhooks', [\App\Http\Controllers\Api\Admin\AdminWebhookController::class, 'index'])
+        ->name('admin.webhook.list');
+});
+

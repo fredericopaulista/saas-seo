@@ -5,6 +5,7 @@ import { Settings, Save, KeyRound } from 'lucide-vue-next'
 
 const loading = ref(false)
 const saving = ref(false)
+const registeringWebhook = ref(false)
 
 const settings = ref({
     GOOGLE_CLIENT_ID: '',
@@ -12,7 +13,8 @@ const settings = ref({
     GOOGLE_REDIRECT_URI: '',
     OPENAI_API_KEY: '',
     ASAAS_ENVIRONMENT: 'sandbox',
-    ASAAS_API_KEY: ''
+    ASAAS_API_KEY: '',
+    ASAAS_WEBHOOK_TOKEN: '',
 })
 
 onMounted(async () => {
@@ -40,6 +42,7 @@ const fetchSettings = async () => {
             data.asaas_gateway.forEach((item: any) => {
                 if (item.key === 'ASAAS_ENVIRONMENT') settings.value.ASAAS_ENVIRONMENT = item.value || 'sandbox'
                 if (item.key === 'ASAAS_API_KEY') settings.value.ASAAS_API_KEY = item.value || ''
+                if (item.key === 'ASAAS_WEBHOOK_TOKEN') settings.value.ASAAS_WEBHOOK_TOKEN = item.value || ''
             })
         }
     } catch (e) {
@@ -83,6 +86,11 @@ const saveSettings = async () => {
                     key: 'ASAAS_API_KEY',
                     value: settings.value.ASAAS_API_KEY,
                     group: 'asaas_gateway'
+                },
+                {
+                    key: 'ASAAS_WEBHOOK_TOKEN',
+                    value: settings.value.ASAAS_WEBHOOK_TOKEN,
+                    group: 'asaas_gateway'
                 }
             ]
         }
@@ -94,6 +102,22 @@ const saveSettings = async () => {
         alert('Falha ao salvar as configurações.')
     } finally {
         saving.value = false
+    }
+}
+
+const registerWebhook = async () => {
+    if (!settings.value.ASAAS_WEBHOOK_TOKEN) {
+        alert('Configure e salve o Webhook Token antes de registrar.')
+        return
+    }
+    registeringWebhook.value = true
+    try {
+        const { data } = await api.post('/admin/billing/register-webhook')
+        alert(`Webhook registrado com sucesso!\nURL: ${data.webhook_url}`)
+    } catch (e: any) {
+        alert(e.response?.data?.error || 'Falha ao registrar webhook no Asaas.')
+    } finally {
+        registeringWebhook.value = false
     }
 }
 
@@ -234,10 +258,34 @@ const saveSettings = async () => {
                         class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
                     >
                 </div>
-                
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Webhook Token (asaas-access-token)</label>
+                    <input 
+                        v-model="settings.ASAAS_WEBHOOK_TOKEN" 
+                        type="password" 
+                        placeholder="Ex: a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5..." 
+                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
+                    >
+                    <p class="text-xs text-gray-500 mt-1">Gere um token seguro: <code class="bg-gray-800 px-1 rounded">openssl rand -hex 32</code></p>
+                </div>
+
+                <div class="flex items-center gap-3 pt-1">
+                    <button
+                        @click="registerWebhook"
+                        :disabled="registeringWebhook || !settings.ASAAS_WEBHOOK_TOKEN"
+                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2"
+                    >
+                        <div v-if="registeringWebhook" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span v-else>🔗</span>
+                        {{ registeringWebhook ? 'Registrando...' : 'Registrar Webhook no Asaas' }}
+                    </button>
+                    <p class="text-xs text-gray-500">Salve as configurações antes de registrar.</p>
+                </div>
+                 
                  <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-lg text-sm flex gap-3 items-start">
                     <p>
-                        <strong>Segurança:</strong> A chave de API do Asaas será automaticamente criptografada antes de ser salva no banco de dados (AES-256-CBC) para proteger as transações financeiras dos clientes.
+                        <strong>Segurança:</strong> A chave de API e o Webhook Token são criptografados (AES-256-CBC) antes de serem salvos no banco de dados. Nenhuma credencial é armazenada em texto plano.
                     </p>
                 </div>
             </div>

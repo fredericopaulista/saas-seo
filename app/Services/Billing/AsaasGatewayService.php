@@ -39,6 +39,26 @@ class AsaasGatewayService
     }
 
     /**
+     * Retrieve the webhook token from the database (decrypted), 
+     * falling back to the .env value.
+     * Static so the webhook controller can call it without full DI.
+     */
+    public static function getWebhookToken(): string
+    {
+        $setting = Setting::where('key', 'ASAAS_WEBHOOK_TOKEN')->first();
+
+        if ($setting && !empty($setting->value)) {
+            try {
+                return Crypt::decryptString($setting->value);
+            } catch (\Exception $e) {
+                // Fall through to env fallback
+            }
+        }
+
+        return config('services.asaas.webhook_token', '');
+    }
+
+    /**
      * Create or retrieve a customer in Asaas
      */
     public function createCustomer(string $name, string $email, ?string $cpfCnpj): ?array
@@ -110,6 +130,60 @@ class AsaasGatewayService
         if ($response->successful()) {
             $data = $response->json();
             return $data['data'][0] ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Register (or update) this application's webhook URL in Asaas.
+     * Call this once after deployment via an admin action.
+     *
+     * @param  string $url   The public URL that Asaas will POST events to
+     * @param  string $token A secret token you define; Asaas sends it as `asaas-access-token`
+     * @return array|null    The created/updated webhook object, or null on failure
+     */
+    public function registerWebhook(string $url, string $token): ?array
+    {
+        $response = Http::withHeaders([
+            'access_token' => $this->apiKey,
+        ])->post("{$this->baseUrl}/webhook", [
+            'url'     => $url,
+            'email'   => config('mail.from.address', 'webhook@example.com'),
+            'enabled' => true,
+            'interrupted' => false,
+            'authToken' => $token,   // Asaas uses this as the `asaas-access-token` header
+            'events'  => [
+                'PAYMENT_RECEIVED',
+                'PAYMENT_CONFIRMED',
+                'PAYMENT_OVERDUE',
+                'PAYMENT_DELETED',
+                'PAYMENT_REFUNDED',
+                'PAYMENT_REFUND_CONFIRMED',
+                'PAYMENT_CHARGEBACK_REQUESTED',
+                'PAYMENT_CHARGEBACK_DISPUTE',
+                'SUBSCRIPTION_DELETED',
+            ],
+        ]);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        return null;
+    }
+
+    /**
+     * List all webhooks registered in Asaas.
+     */
+    public function listWebhooks(): ?array
+    {
+        $response = Http::withHeaders([
+            'access_token' => $this->apiKey,
+        ])->get("{$this->baseUrl}/webhook");
+
+        if ($response->successful()) {
+            return $response->json();
         }
 
         return null;

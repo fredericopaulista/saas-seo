@@ -12,12 +12,13 @@ class SettingController extends Controller
     {
         $settings = Setting::all();
         
+        $sensitiveKeys = ['ASAAS_API_KEY', 'ASAAS_WEBHOOK_TOKEN'];
+
         foreach ($settings as $setting) {
-            if ($setting->key === 'ASAAS_API_KEY' && !empty($setting->value)) {
+            if (in_array($setting->key, $sensitiveKeys) && !empty($setting->value)) {
                 try {
                     $setting->value = \Illuminate\Support\Facades\Crypt::decryptString($setting->value);
                 } catch (\Exception $e) {
-                    // Ignore decryption failures (e.g., if token changes or legacy plain text exists)
                     $setting->value = '';
                 }
             }
@@ -35,10 +36,12 @@ class SettingController extends Controller
             'settings.*.group' => 'required|string',
         ]);
 
+        $sensitiveKeys = ['ASAAS_API_KEY', 'ASAAS_WEBHOOK_TOKEN'];
+
         foreach ($request->settings as $setting) {
             $value = $setting['value'];
 
-            if ($setting['key'] === 'ASAAS_API_KEY' && !empty($value)) {
+            if (in_array($setting['key'], $sensitiveKeys) && !empty($value)) {
                 $value = \Illuminate\Support\Facades\Crypt::encryptString($value);
             }
 
