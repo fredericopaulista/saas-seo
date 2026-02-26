@@ -21,6 +21,16 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('auth_token', token.value!)
     }
 
+    const register = async (credentials: any) => {
+        await axios.get('/sanctum/csrf-cookie', { baseURL: window.location.origin })
+
+        const response = await api.post('/auth/register', credentials)
+        token.value = response.data.access_token
+        user.value = response.data.user
+
+        localStorage.setItem('auth_token', token.value!)
+    }
+
     const logout = async () => {
         try {
             await api.post('/auth/logout')
@@ -53,5 +63,5 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isAuthenticated = () => !!token.value
 
-    return { user, isAdmin, token, login, logout, fetchUser, isAuthenticated }
+    return { user, isAdmin, token, login, register, logout, fetchUser, isAuthenticated }
 })

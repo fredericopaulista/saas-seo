@@ -32,7 +32,7 @@ const translateCycle = (cycle: string) => {
 
 const ctaClick = (planSlug: string) => {
     // Redirect to register, could pass plan intent in query if desired
-    router.push({ name: 'login' })
+    router.push({ name: 'register', query: { plan: planSlug } })
 }
 </script>
 
