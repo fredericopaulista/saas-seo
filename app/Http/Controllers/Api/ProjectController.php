@@ -46,7 +46,7 @@ class ProjectController extends Controller
         // Project limits enforcement
         $subscription = \App\Models\Subscription::with('plan')
             ->where('tenant_id', $tenantId)
-            ->whereIn('status', ['active', 'ACTIVE', 'trialing'])
+            ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])
             ->first();
 
         // Fallback for missing subscription vs hard limit
