@@ -10,12 +10,94 @@ const subscribingTo = ref<number | null>(null)
 const currentSubscription = ref<any>(null)
 const isCanceling = ref(false)
 
-// CPF Modal State
-const showCpfModal = ref(false)
-const cpfInput = ref('')
+// Checkout Modal State
+const showCheckoutModal = ref(false)
 const selectedPlanId = ref<number | null>(null)
+const selectedPlan = ref<any>(null)
+
+const checkout = ref({
+    name: '',
+    cpfCnpj: '',
+    phone: '',
+    billingType: 'PIX' as 'PIX' | 'CREDIT_CARD',
+    // Credit Card fields
+    cardHolder: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+})
+const checkoutError = ref('')
 
 const router = useRouter()
+
+const openSubscribeModal = (planId: number) => {
+    selectedPlanId.value = planId
+    selectedPlan.value = plans.value.find((p) => p.id === planId)
+    checkoutError.value = ''
+    checkout.value = { name: '', cpfCnpj: '', phone: '', billingType: 'PIX', cardHolder: '', cardNumber: '', cardExpiry: '', cardCvv: '' }
+    showCheckoutModal.value = true
+}
+
+const confirmSubscription = async () => {
+    checkoutError.value = ''
+
+    if (!checkout.value.name.trim()) { checkoutError.value = 'Por favor, insira seu nome completo.'; return }
+    const cpf = checkout.value.cpfCnpj.replace(/\D/g, '')
+    if (cpf.length !== 11 && cpf.length !== 14) { checkoutError.value = 'CPF (11 dígitos) ou CNPJ (14 dígitos) inválido.'; return }
+    if (!checkout.value.phone.trim()) { checkoutError.value = 'Por favor, insira seu telefone com DDD.'; return }
+
+    if (checkout.value.billingType === 'CREDIT_CARD') {
+        if (!checkout.value.cardHolder.trim()) { checkoutError.value = 'Insira o nome do titular do cartão.'; return }
+        if (checkout.value.cardNumber.replace(/\D/g, '').length < 16) { checkoutError.value = 'Número do cartão inválido.'; return }
+        if (!checkout.value.cardExpiry.trim()) { checkoutError.value = 'Insira a data de vencimento.'; return }
+        if (checkout.value.cardCvv.length < 3) { checkoutError.value = 'Código de segurança inválido.'; return }
+    }
+
+    if (!selectedPlanId.value) return
+
+    subscribingTo.value = selectedPlanId.value
+    showCheckoutModal.value = false
+
+    try {
+        const payload: any = {
+            plan_id: selectedPlanId.value,
+            cpfCnpj: cpf,
+            billingType: checkout.value.billingType,
+        }
+
+        if (checkout.value.billingType === 'CREDIT_CARD') {
+            payload.creditCard = {
+                holderName: checkout.value.cardHolder,
+                number: checkout.value.cardNumber.replace(/\D/g, ''),
+                expiryMonth: checkout.value.cardExpiry.split('/')[0],
+                expiryYear: checkout.value.cardExpiry.split('/')[1],
+                ccv: checkout.value.cardCvv,
+            }
+            payload.creditCardHolderInfo = {
+                name: checkout.value.name,
+                cpfCnpj: cpf,
+                phone: checkout.value.phone.replace(/\D/g, ''),
+            }
+        }
+
+        const { data } = await api.post('/billing/subscribe', payload)
+        
+        if (data.paymentUrl) {
+           window.location.href = data.paymentUrl
+        } else {
+           alert(data.message)
+           window.location.reload()
+        }
+        
+    } catch (e: any) {
+        alert(e.response?.data?.message || 'Falha ao processar assinatura.')
+    } finally {
+        subscribingTo.value = null
+        selectedPlanId.value = null
+    }
+}
+
+
 
 onMounted(async () => {
     try {
@@ -36,46 +118,6 @@ onMounted(async () => {
         loading.value = false
     }
 })
-
-const openSubscribeModal = (planId: number) => {
-    selectedPlanId.value = planId
-    cpfInput.value = '' // reset input
-    showCpfModal.value = true
-}
-
-const confirmSubscription = async () => {
-    if (!cpfInput.value || cpfInput.value.length < 11) {
-        alert('Por favor, insira um CPF ou CNPJ válido.')
-        return
-    }
-
-    if (!selectedPlanId.value) return
-
-    subscribingTo.value = selectedPlanId.value
-    showCpfModal.value = false // hide modal while loading
-
-    try {
-        const { data } = await api.post('/billing/subscribe', {
-            plan_id: selectedPlanId.value,
-            cpfCnpj: cpfInput.value,
-            billingType: 'CREDIT_CARD' // hardcoding test value for MVP bypass
-        })
-        
-        // Se a API retornou o Link de Fatura PIX/Boleto do Asaas, você redireciona o cliente:
-        if(data.paymentUrl) {
-           window.location.href = data.paymentUrl;
-        } else {
-           alert(data.message)
-           window.location.reload()
-        }
-        
-    } catch (e: any) {
-        alert(e.response?.data?.message || 'Falha ao processar assinatura.')
-    } finally {
-        subscribingTo.value = null
-        selectedPlanId.value = null
-    }
-}
 
 const cancelSubscription = async () => {
     if (!confirm('Tem certeza que deseja cancelar sua assinatura? O cancelamento é imediato e você perderá seus acessos estendidos.')) return;
@@ -189,45 +231,115 @@ const translateCycle = (cycle: string) => {
       </div>
     </div>
 
-    <!-- CPF/CNPJ Checkout Modal -->
-    <div v-if="showCpfModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
+    <!-- Full Checkout Modal -->
+    <div v-if="showCheckoutModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
         <!-- Accent Line -->
         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
         
-        <div class="p-6">
-          <h3 class="text-xl font-bold text-white mb-2">Detalhes de Faturamento</h3>
-          <p class="text-sm text-gray-400 mb-6">
-            O Asaas, nosso gateway e parceiro financeiro oficial, exige um documento válido brasileiro (CPF ou CNPJ) associado ao titular da cobrança.
-          </p>
-          
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-300 mb-2">CPF ou CNPJ (apenas números)</label>
-            <input 
-                v-model="cpfInput" 
-                type="text" 
-                placeholder="Ex: 12345678900" 
-                class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-mono"
-                @keyup.enter="confirmSubscription"
-            >
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-800 flex items-start justify-between">
+          <div>
+            <h3 class="text-xl font-bold text-white">Finalizar Assinatura</h3>
+            <p class="text-sm text-gray-400 mt-1" v-if="selectedPlan">Plano <span class="text-indigo-400 font-semibold">{{ selectedPlan.name }}</span> · R$ {{ selectedPlan.price }}/{{ translateCycle(selectedPlan.billing_cycle) }}</p>
+          </div>
+          <button @click="showCheckoutModal = false" class="text-gray-500 hover:text-white transition-colors text-2xl leading-none">&times;</button>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="overflow-y-auto flex-1 p-6 space-y-5">
+
+          <!-- Billing Info -->
+          <div>
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Seus Dados</p>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
+                <input v-model="checkout.name" type="text" placeholder="Frederico Moura" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">CPF ou CNPJ</label>
+                  <input v-model="checkout.cpfCnpj" type="text" placeholder="000.000.000-00" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-mono text-sm" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Telefone (DDD)</label>
+                  <input v-model="checkout.phone" type="text" placeholder="(11) 99999-9999" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm" />
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="flex gap-3">
-            <button 
-                @click="showCpfModal = false" 
-                class="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 hover:text-white transition-all text-sm border border-gray-700"
-            >
-                Cancelar
-            </button>
-            <button 
-                @click="confirmSubscription" 
-                class="flex-1 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/25 transition-all text-sm border border-indigo-500/50"
-            >
-                Continuar
-            </button>
+          <!-- Payment Method Selector -->
+          <div>
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Forma de Pagamento</p>
+            <div class="grid grid-cols-2 gap-3">
+              <button @click="checkout.billingType = 'PIX'"
+                :class="checkout.billingType === 'PIX' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'"
+                class="flex flex-col items-center gap-2 py-4 rounded-xl border transition-all font-medium text-sm">
+                <span class="text-2xl">⚡</span>
+                PIX
+                <span class="text-xs font-normal opacity-70">Instantâneo</span>
+              </button>
+              <button @click="checkout.billingType = 'CREDIT_CARD'"
+                :class="checkout.billingType === 'CREDIT_CARD' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'"
+                class="flex flex-col items-center gap-2 py-4 rounded-xl border transition-all font-medium text-sm">
+                <span class="text-2xl">💳</span>
+                Cartão de Crédito
+                <span class="text-xs font-normal opacity-70">Débito automático</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Credit Card Fields (conditional) -->
+          <transition name="fade">
+            <div v-if="checkout.billingType === 'CREDIT_CARD'" class="space-y-3">
+              <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Dados do Cartão</p>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Nome no Cartão</label>
+                <input v-model="checkout.cardHolder" type="text" placeholder="FREDERICO MOURA" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-mono text-sm uppercase" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Número do Cartão</label>
+                <input v-model="checkout.cardNumber" type="text" placeholder="0000 0000 0000 0000" maxlength="19" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-mono text-sm" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Vencimento (MM/AA)</label>
+                  <input v-model="checkout.cardExpiry" type="text" placeholder="12/27" maxlength="5" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-mono text-sm" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">CVV</label>
+                  <input v-model="checkout.cardCvv" type="password" placeholder="•••" maxlength="4" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-mono text-sm" />
+                </div>
+              </div>
+            </div>
+          </transition>
+
+          <!-- Error message -->
+          <div v-if="checkoutError" class="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm">
+            {{ checkoutError }}
+          </div>
+
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="p-6 border-t border-gray-800 flex gap-3">
+          <button @click="showCheckoutModal = false" class="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 hover:text-white transition-all text-sm border border-gray-700">
+            Cancelar
+          </button>
+          <button @click="confirmSubscription" :disabled="subscribingTo !== null" class="flex-1 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/25 transition-all text-sm border border-indigo-500/50 flex items-center justify-center gap-2 disabled:opacity-50">
+            <div v-if="subscribingTo !== null" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <span v-if="checkout.billingType === 'PIX'">Gerar QR Code PIX</span>
+            <span v-else>Pagar com Cartão</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-8px); }
+</style>
