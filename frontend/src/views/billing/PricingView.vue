@@ -92,16 +92,19 @@ const confirmSubscription = async () => {
     try {
         const payload: any = {
             plan_id: selectedPlanId.value,
+            name: checkout.value.name.trim(),
             cpfCnpj: cpf,
+            phone: checkout.value.phone.replace(/\D/g, ''),
             billingType: checkout.value.billingType,
         }
 
         if (checkout.value.billingType === 'CREDIT_CARD') {
+            const [month, year] = checkout.value.cardExpiry.split('/')
             payload.creditCard = {
                 holderName: checkout.value.cardHolder,
                 number: checkout.value.cardNumber.replace(/\D/g, ''),
-                expiryMonth: checkout.value.cardExpiry.split('/')[0],
-                expiryYear: checkout.value.cardExpiry.split('/')[1],
+                expiryMonth: month,
+                expiryYear: year?.length === 2 ? `20${year}` : year,
                 ccv: checkout.value.cardCvv,
             }
             payload.creditCardHolderInfo = {

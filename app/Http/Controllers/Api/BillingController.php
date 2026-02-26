@@ -61,7 +61,11 @@ class BillingController extends Controller
         $request->validate([
             'plan_id' => 'required|exists:plans,id',
             'billingType' => 'required|in:CREDIT_CARD,PIX,BOLETO',
-            'cpfCnpj' => 'nullable|string|min:11'
+            'cpfCnpj' => 'required|string|min:11',
+            'phone' => 'required|string|min:10',
+            // Optional credit card validation
+            'creditCard' => 'nullable|array',
+            'creditCardHolderInfo' => 'nullable|array',
         ]);
 
         $user = auth()->user();
@@ -71,21 +75,18 @@ class BillingController extends Controller
             $user->update(['current_tenant_id' => $tenantId]);
         }
 
-        // Prevent double subscribing active plans if trying to subscribe to the same plan
+        // Prevent double subscribing active plans
         $activeSubscription = Subscription::where('tenant_id', $tenantId)
             ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])
             ->first();
 
-        // If they have an active plan and they chose the same plan:
         if ($activeSubscription && $activeSubscription->plan_id == $request->plan_id) {
             return response()->json(['message' => 'Você já possui este plano ativo.'], 400);
         }
 
-        // Real world note: If they have an active sub to a different plan, we should cancel the old one first or update it.
-        // For this immediate MVP flow, if an active one exists, we cancel the old one.
+        // Cancel old subscription if exists
         if ($activeSubscription) {
             if ($activeSubscription->asaas_subscription_id) {
-                // Ignore cancel failure internally
                 $this->asaasService->cancelSubscription($activeSubscription->asaas_subscription_id);
             }
             $activeSubscription->update(['status_gateway' => 'CANCELED', 'status' => 'canceled']);
@@ -93,7 +94,6 @@ class BillingController extends Controller
 
         $plan = Plan::find($request->plan_id);
 
-        // Plans with a zero price (e.g. Super Admin, free tiers) bypass the payment gateway entirely
         if ((float) $plan->price <= 0) {
             $subscription = Subscription::create([
                 'tenant_id' => $tenantId,
@@ -109,15 +109,11 @@ class BillingController extends Controller
             ]);
         }
 
-        /**
-         * Real-world scenario: We'd check if customer exists in DB first, 
-         * then create if not, but for MVP we send directly.
-         */
         $remoteCustomer = $this->asaasService->createCustomer(
-            $user->name,
+            $request->name ?? $user->name, // use name from request if provided
             $user->email,
-            // Dynamically passed from frontend checkout modal, fallback to empty string if null
-            $request->cpfCnpj ?? ''
+            $request->cpfCnpj,
+            $request->phone
         );
 
         if (!$remoteCustomer) {
@@ -127,14 +123,17 @@ class BillingController extends Controller
         $remoteSubscription = $this->asaasService->createSubscription(
             $remoteCustomer['id'],
             $request->billingType,
-            (float) $plan->price
+            (float) $plan->price,
+            'MONTHLY',
+            $request->creditCard,
+            $request->creditCardHolderInfo
         );
 
         if (!$remoteSubscription) {
-            return response()->json(['message' => 'Falha ao gerar cobrança no Gateway de Pagamento'], 500);
+            return response()->json(['message' => 'Falha ao gerar cobrança no Gateway de Pagamento. Verifique os dados do cartão.'], 500);
         }
 
-        // Create local record pending payment notification
+        // Create local record
         $subscription = Subscription::create([
             'tenant_id' => $tenantId,
             'plan_id' => $plan->id,
@@ -143,13 +142,11 @@ class BillingController extends Controller
             'status_gateway' => 'PENDING',
         ]);
 
-        // Asaas does NOT return invoiceUrl directly on subscription creation.
-        // We need to fetch the auto-generated payment for this subscription.
         $payment = null;
         $paymentUrl = null;
         $pixData = null;
 
-        // Small delay to allow Asaas to generate the payment record
+        // Small delay for Asaas background processing
         sleep(1);
         $payment = $this->asaasService->getSubscriptionPayments($remoteSubscription['id']);
 
@@ -157,12 +154,15 @@ class BillingController extends Controller
             $paymentUrl = $payment['invoiceUrl'] ?? $payment['bankSlipUrl'] ?? null;
 
             if ($request->billingType === 'PIX' && isset($payment['id'])) {
-                // For PIX, we can return qr code data if available on the payment object
-                $pixData = [
-                    'pixQrCode'    => $payment['pixQrCode']    ?? null,
-                    'pixCopiaECola'=> $payment['pixCopiaECola']?? null,
-                    'invoiceUrl'   => $paymentUrl,
-                ];
+                // Fetch dedicated PIX QR Code data
+                $qrCodeRes = $this->asaasService->getPixQrCode($payment['id']);
+                if ($qrCodeRes) {
+                    $pixData = [
+                        'pixQrCode'    => $qrCodeRes['encodedImage'] ?? null,
+                        'pixCopiaECola'=> $qrCodeRes['payload']      ?? null,
+                        'invoiceUrl'   => $paymentUrl,
+                    ];
+                }
             }
         }
 

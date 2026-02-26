@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use App\Models\Setting;
 
 class AsaasGatewayService
@@ -61,7 +62,7 @@ class AsaasGatewayService
     /**
      * Create or retrieve a customer in Asaas
      */
-    public function createCustomer(string $name, string $email, ?string $cpfCnpj): ?array
+    public function createCustomer(string $name, string $email, ?string $cpfCnpj, ?string $phone = null): ?array
     {
         $response = Http::withHeaders([
             'access_token' => $this->apiKey,
@@ -69,11 +70,17 @@ class AsaasGatewayService
             'name' => $name,
             'email' => $email,
             'cpfCnpj' => $cpfCnpj,
+            'mobilePhone' => $phone,
         ]);
 
         if ($response->successful()) {
             return $response->json();
         }
+
+        Log::error('Asaas Create Customer Error:', [
+            'status' => $response->status(),
+            'body' => $response->json()
+        ]);
 
         return null;
     }
@@ -81,23 +88,57 @@ class AsaasGatewayService
     /**
      * Creates a subscription for an existing Customer
      */
-    public function createSubscription(string $customerId, string $billingType, float $value, string $cycle = 'MONTHLY'): ?array
-    {
-        $response = Http::withHeaders([
-            'access_token' => $this->apiKey,
-        ])->post("{$this->baseUrl}/subscriptions", [
+    public function createSubscription(
+        string $customerId, 
+        string $billingType, 
+        float $value, 
+        string $cycle = 'MONTHLY',
+        ?array $creditCard = null,
+        ?array $creditCardHolderInfo = null
+    ): ?array {
+        $payload = [
             'customer' => $customerId,
             'billingType' => $billingType, // PIX, CREDIT_CARD, BOLETO
             'value' => $value,
             'nextDueDate' => now()->addDays(1)->format('Y-m-d'),
             'cycle' => $cycle,
             'description' => 'SaaS SEO Premium Subscription'
-        ]);
+        ];
+
+        if ($billingType === 'CREDIT_CARD' && $creditCard) {
+            $payload['creditCard'] = $creditCard;
+            $payload['creditCardHolderInfo'] = $creditCardHolderInfo;
+        }
+
+        $response = Http::withHeaders([
+            'access_token' => $this->apiKey,
+        ])->post("{$this->baseUrl}/subscriptions", $payload);
 
         if ($response->successful()) {
             return $response->json();
         }
         
+        Log::error('Asaas Subscription Error:', [
+            'status' => $response->status(),
+            'body' => $response->json()
+        ]);
+
+        return null;
+    }
+
+    /**
+     * Get PIX QR Code for a specific payment
+     */
+    public function getPixQrCode(string $paymentId): ?array
+    {
+        $response = Http::withHeaders([
+            'access_token' => $this->apiKey,
+        ])->get("{$this->baseUrl}/payments/{$paymentId}/pixQrCode");
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
         return null;
     }
 
