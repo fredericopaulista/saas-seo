@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
-import { CreditCard, ArrowUpRight, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-vue-next'
+import { CreditCard, ArrowUpRight, CheckCircle2, XCircle, AlertCircle, Clock, Ban, RotateCcw } from 'lucide-vue-next'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-const loading = ref(true)
-const payload = ref({
-    plans: [] as any[],
-    subscriptions: [] as any[]
-})
+const processingId = ref<number | null>(null)
 
-onMounted(async () => {
+const fetchBillingData = async () => {
+    loading.value = true
     try {
         const { data } = await api.get('/admin/billing-overview')
         payload.value = data
@@ -20,6 +17,10 @@ onMounted(async () => {
     } finally {
         loading.value = false
     }
+}
+
+onMounted(async () => {
+    fetchBillingData()
 })
 
 const formatCurrency = (val: number) => {
@@ -27,20 +28,69 @@ const formatCurrency = (val: number) => {
 }
 
 const statusColor = (status: string) => {
-    if (status === 'ACTIVE' || status === 'active') return 'text-green-500 bg-green-500/10'
-    if (status === 'PENDING' || status === 'pending') return 'text-orange-500 bg-orange-500/10'
+    const s = (status || '').toUpperCase()
+    if (['ACTIVE', 'CONFIRMED', 'RECEIVED'].includes(s)) return 'text-green-500 bg-green-500/10'
+    if (['PENDING'].includes(s)) return 'text-orange-500 bg-orange-500/10'
+    if (['REFUNDED', 'CANCELED', 'CANCELLED'].includes(s)) return 'text-gray-500 bg-gray-500/10 border-gray-800'
     return 'text-red-500 bg-red-500/10'
 }
 
+const translateStatus = (status: string) => {
+    const map: any = {
+        'ACTIVE': 'Ativo',
+        'PENDING': 'Pendente',
+        'OVERDUE': 'Vencido',
+        'EXPIRED': 'Expirado',
+        'CANCELED': 'Cancelado',
+        'CANCELLED': 'Cancelado',
+        'REFUNDED': 'Estornado',
+        'RECEIVED': 'Recebido',
+        'CONFIRMED': 'Confirmado',
+        'DELETED': 'Excluído',
+        'Aguardando Sinc...': 'Aguardando Sinc...'
+    }
+    return map[status.toUpperCase()] || status
+}
+
 const statusIcon = (status: string) => {
-    if (status === 'ACTIVE' || status === 'active') return CheckCircle2
-    if (status === 'PENDING' || status === 'pending') return AlertCircle
+    const s = (status || '').toUpperCase()
+    if (['ACTIVE', 'CONFIRMED', 'RECEIVED'].includes(s)) return CheckCircle2
+    if (['PENDING'].includes(s)) return AlertCircle
+    if (['CANCELED', 'CANCELLED', 'REFUNDED'].includes(s)) return Ban
     return XCircle
 }
 
 const formatDate = (date: string) => {
     if (!date) return '-'
     return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+}
+
+const cancelSubscription = async (id: number) => {
+    if (!confirm('Deseja realmente CANCELAR esta assinatura no Asaas?')) return
+    processingId.value = id
+    try {
+        await api.post(`/admin/subscriptions/${id}/cancel`)
+        alert('Assinatura cancelada com sucesso.')
+        fetchBillingData()
+    } catch (e: any) {
+        alert(e.response?.data?.error || 'Erro ao cancelar assinatura.')
+    } finally {
+        processingId.value = null
+    }
+}
+
+const refundSubscription = async (id: number) => {
+    if (!confirm('Deseja realmente ESTORNAR o último pagamento desta venda no Asaas?')) return
+    processingId.value = id
+    try {
+        await api.post(`/admin/subscriptions/${id}/refund`)
+        alert('Solicitação de estorno enviada com sucesso ao Asaas.')
+        fetchBillingData()
+    } catch (e: any) {
+        alert(e.response?.data?.error || 'Erro ao processar estorno.')
+    } finally {
+        processingId.value = null
+    }
 }
 
 </script>
@@ -83,6 +133,7 @@ const formatDate = (date: string) => {
               <th class="px-6 py-4 font-medium">Assinado em</th>
               <th class="px-6 py-4 font-medium">Status Gateway</th>
               <th class="px-6 py-4 font-medium">Asaas ID</th>
+              <th class="px-6 py-4 font-medium text-right">Ações de Root</th>
             </tr>
           </thead>
           <tbody class="text-sm text-gray-300">
@@ -99,13 +150,33 @@ const formatDate = (date: string) => {
                   {{ formatDate(sub.created_at) }}
               </td>
               <td class="px-6 py-4">
-                  <span :class="statusColor(sub.status_gateway || sub.status)" class="px-2 py-1 rounded inline-flex items-center gap-1.5 text-xs font-medium uppercase">
+                  <span :class="statusColor(sub.status_gateway || sub.status)" class="px-2 py-1 rounded inline-flex items-center gap-1.5 text-xs font-medium uppercase border border-transparent">
                       <component :is="statusIcon(sub.status_gateway || sub.status)" class="w-3 h-3" />
-                      {{ sub.status_gateway || sub.status }}
+                      {{ translateStatus(sub.status_gateway || sub.status) }}
                   </span>
               </td>
               <td class="px-6 py-4 font-mono text-xs text-gray-500">
                   {{ sub.asaas_subscription_id || 'Aguardando Sinc...' }}
+              </td>
+              <td class="px-6 py-4 text-right">
+                  <div class="flex justify-end gap-2">
+                      <button 
+                         @click="refundSubscription(sub.id)" 
+                         :disabled="processingId === sub.id"
+                         class="p-1.5 text-gray-400 hover:text-orange-400 transition-colors disabled:opacity-30" 
+                         title="Estornar Venda"
+                      >
+                          <RotateCcw class="w-4 h-4" :class="{ 'animate-spin': processingId === sub.id }" />
+                      </button>
+                      <button 
+                         @click="cancelSubscription(sub.id)" 
+                         :disabled="processingId === sub.id || (sub.status_gateway || sub.status) === 'CANCELED'"
+                         class="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30" 
+                         title="Cancelar Assinatura"
+                      >
+                          <Ban class="w-4 h-4" />
+                      </button>
+                  </div>
               </td>
             </tr>
           </tbody>

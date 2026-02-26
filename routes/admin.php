@@ -34,6 +34,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.permission'])->group(
     // Plans CRUD
     Route::apiResource('/plans', \App\Http\Controllers\Api\Admin\PlanController::class);
 
+    // Subscription Management
+    Route::post('/subscriptions/{id}/cancel', [\App\Http\Controllers\Api\Admin\AdminSubscriptionController::class, 'cancel']);
+    Route::post('/subscriptions/{id}/refund', [\App\Http\Controllers\Api\Admin\AdminSubscriptionController::class, 'refund']);
+
     // System Monitoring
     Route::get('/system/health', function (\App\Services\Admin\SystemMonitoringService $service) {
         return response()->json($service->getSystemHealth());
