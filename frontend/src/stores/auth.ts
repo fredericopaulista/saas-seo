@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '../services/api'
+import axios from 'axios'
 import { useRouter } from 'vue-router'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -11,7 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const login = async (credentials: any) => {
         // CSRF initialization for Sanctum
-        await api.get('/sanctum/csrf-cookie')
+        await axios.get('/sanctum/csrf-cookie', { baseURL: window.location.origin })
 
         const response = await api.post('/auth/login', credentials)
         token.value = response.data.access_token
