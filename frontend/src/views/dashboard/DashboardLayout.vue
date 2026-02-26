@@ -49,6 +49,11 @@ const handleLogout = async () => {
                   :class="$route.path.includes('/dashboard/projects') ? 'text-white bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] ring-1 ring-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'">
                     Meus Projetos
                 </router-link>
+                <router-link to="/pricing" 
+                  class="relative px-4 py-2 font-medium text-sm rounded-lg transition-all duration-300"
+                  :class="$route.path.includes('/pricing') ? 'text-white bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] ring-1 ring-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'">
+                    Assinatura
+                </router-link>
             </div>
           </div>
 
