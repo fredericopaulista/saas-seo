@@ -10,8 +10,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Spatie\Multitenancy\Jobs\NotTenantAware;
 
-class ProcessAsaasWebhookJob implements ShouldQueue
+class ProcessAsaasWebhookJob implements ShouldQueue, NotTenantAware
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -137,6 +138,7 @@ class ProcessAsaasWebhookJob implements ShouldQueue
             return;
         }
 
+        // Search across all tenants since we are NotTenantAware and the scope is null-safe
         $sub = Subscription::where('asaas_subscription_id', $asaasSubscriptionId)->first();
 
         if (!$sub) {
@@ -144,6 +146,12 @@ class ProcessAsaasWebhookJob implements ShouldQueue
                 'asaas_subscription_id' => $asaasSubscriptionId,
             ]);
             return;
+        }
+
+        // Set the current tenant context based on the found subscription
+        // This ensures observers/scopes work correctly for this tenant
+        if ($sub->tenant_id) {
+            \App\Models\Tenant::find($sub->tenant_id)?->makeCurrent();
         }
 
         $sub->update([
