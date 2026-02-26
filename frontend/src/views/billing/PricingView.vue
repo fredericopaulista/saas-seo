@@ -98,6 +98,8 @@ const confirmSubscription = async () => {
             billingType: checkout.value.billingType,
         }
 
+        console.log('Sending Subscription Payload:', payload)
+
         if (checkout.value.billingType === 'CREDIT_CARD') {
             const [month, year] = checkout.value.cardExpiry.split('/')
             payload.creditCard = {

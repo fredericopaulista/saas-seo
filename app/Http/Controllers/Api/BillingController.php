@@ -58,15 +58,28 @@ class BillingController extends Controller
      */
     public function subscribe(Request $request)
     {
-        $request->validate([
-            'plan_id' => 'required|exists:plans,id',
-            'billingType' => 'required|in:CREDIT_CARD,PIX,BOLETO',
-            'cpfCnpj' => 'required|string|min:11',
-            'phone' => 'required|string|min:10',
-            // Optional credit card validation
+        Log::info('Subscription Request Data:', $request->all());
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'plan_id' => 'required',
+            'billingType' => 'required',
+            'cpfCnpj' => 'required',
+            'phone' => 'nullable', // Flexible for debugging
+            'name' => 'nullable',  // Flexible for debugging
             'creditCard' => 'nullable|array',
             'creditCardHolderInfo' => 'nullable|array',
         ]);
+
+        if ($validator->fails()) {
+            Log::warning('Subscription Validation Failed:', [
+                'errors' => $validator->errors()->toArray(),
+                'data' => $request->all()
+            ]);
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $user = auth()->user();
         $tenantId = $user->current_tenant_id;
@@ -109,15 +122,22 @@ class BillingController extends Controller
             ]);
         }
 
+        $phone = $request->phone ?: ($request->creditCardHolderInfo['phone'] ?? null);
+
         $remoteCustomer = $this->asaasService->createCustomer(
-            $request->name ?? $user->name, // use name from request if provided
+            $request->name ?? $user->name,
             $user->email,
             $request->cpfCnpj,
-            $request->phone
+            $phone
         );
 
         if (!$remoteCustomer) {
-            return response()->json(['message' => 'Falha ao sincronizar cliente com o Gateway de Pagamento'], 500);
+            Log::error('Customer creation failed. Input data:', [
+                'name' => $request->name,
+                'cpfCnpj' => $request->cpfCnpj,
+                'phone' => $phone
+            ]);
+            return response()->json(['message' => 'Falha ao sincronizar cliente com o Gateway. Verifique se o CPF e Telefone estão corretos.'], 500);
         }
 
         $remoteSubscription = $this->asaasService->createSubscription(
