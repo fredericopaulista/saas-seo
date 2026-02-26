@@ -58,6 +58,9 @@ const handleLogout = async () => {
           </div>
 
           <div class="flex items-center space-x-4">
+            <router-link to="/admin" v-if="authStore.isAdmin" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 border border-indigo-500/50">
+                Painel Admin
+            </router-link>
             <div class="py-1.5 px-3 rounded-full bg-white/5 border border-white/5 flex items-center shadow-inner text-sm font-medium text-gray-200" v-if="authStore.user">
               <div class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></div>
               {{ authStore.user?.name }}
