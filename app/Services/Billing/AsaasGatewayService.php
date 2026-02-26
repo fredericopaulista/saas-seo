@@ -58,4 +58,16 @@ class AsaasGatewayService
         
         return null;
     }
+
+    /**
+     * Cancels an active subscription in Asaas
+     */
+    public function cancelSubscription(string $subscriptionId): bool
+    {
+        $response = Http::withHeaders([
+            'access_token' => $this->apiKey,
+        ])->delete("{$this->baseUrl}/subscriptions/{$subscriptionId}");
+
+        return $response->successful();
+    }
 }

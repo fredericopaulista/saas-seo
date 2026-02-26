@@ -44,5 +44,7 @@ Route::post('/webhooks/asaas', [\App\Http\Controllers\Api\Webhook\AsaasWebhookCo
 
 Route::prefix('billing')->middleware('auth:sanctum')->group(function () {
     Route::get('/plans', [\App\Http\Controllers\Api\BillingController::class, 'getPlans']);
+    Route::get('/my-subscription', [\App\Http\Controllers\Api\BillingController::class, 'mySubscription']);
     Route::post('/subscribe', [\App\Http\Controllers\Api\BillingController::class, 'subscribe']);
+    Route::post('/cancel', [\App\Http\Controllers\Api\BillingController::class, 'cancelSubscription']);
 });

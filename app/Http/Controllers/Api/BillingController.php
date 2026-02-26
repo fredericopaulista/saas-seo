@@ -27,6 +27,25 @@ class BillingController extends Controller
     }
 
     /**
+     * Get the logged in tenant's active subscription
+     */
+    public function mySubscription()
+    {
+        $tenant = auth()->user()->tenant;
+        if (!$tenant) {
+            return response()->json(['subscription' => null]);
+        }
+
+        $subscription = Subscription::with('plan')
+            ->where('tenant_id', $tenant->id)
+            ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])
+            ->latest()
+            ->first();
+
+        return response()->json(['subscription' => $subscription]);
+    }
+
+    /**
      * Process checkout/subscription for a specific Plan
      */
     public function subscribe(Request $request)
@@ -39,13 +58,24 @@ class BillingController extends Controller
         $user = auth()->user();
         $tenant = $user->tenant; // Assuming user->tenant mapping is established
 
-        // Prevent double subscribing active plans
+        // Prevent double subscribing active plans if trying to subscribe to the same plan
         $activeSubscription = Subscription::where('tenant_id', $tenant->id)
             ->where('status_gateway', 'ACTIVE')
             ->first();
 
+        // If they have an active plan and they chose the same plan:
+        if ($activeSubscription && $activeSubscription->plan_id == $request->plan_id) {
+            return response()->json(['message' => 'Você já possui este plano ativo.'], 400);
+        }
+
+        // Real world note: If they have an active sub to a different plan, we should cancel the old one first or update it.
+        // For this immediate MVP flow, if an active one exists, we cancel the old one.
         if ($activeSubscription) {
-            return response()->json(['message' => 'Você já possui uma assinatura ativa.'], 400);
+            if ($activeSubscription->asaas_subscription_id) {
+                // Ignore cancel failure internally
+                $this->asaasService->cancelSubscription($activeSubscription->asaas_subscription_id);
+            }
+            $activeSubscription->update(['status_gateway' => 'CANCELED', 'status' => 'canceled']);
         }
 
         $plan = Plan::find($request->plan_id);
@@ -90,5 +120,35 @@ class BillingController extends Controller
             // Asaas usually returns invoiceUrl for BOLETO/PIX, or credit card forms.
             'paymentUrl' => $remoteSubscription['invoiceUrl'] ?? null 
         ]);
+    }
+
+    /**
+     * Cancels the active subscription for the current tenant.
+     */
+    public function cancelSubscription()
+    {
+        $tenant = auth()->user()->tenant;
+        
+        $activeSubscription = Subscription::where('tenant_id', $tenant->id)
+            ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])
+            ->first();
+            
+        if (!$activeSubscription) {
+            return response()->json(['message' => 'Nenhuma assinatura ativa encontrada.'], 400);
+        }
+
+        if ($activeSubscription->asaas_subscription_id) {
+            $canceled = $this->asaasService->cancelSubscription($activeSubscription->asaas_subscription_id);
+            if (!$canceled) {
+                return response()->json(['message' => 'Falha ao processar cancelamento. Contate o suporte.'], 500);
+            }
+        }
+
+        $activeSubscription->update([
+            'status' => 'canceled',
+            'status_gateway' => 'CANCELED',
+        ]);
+
+        return response()->json(['message' => 'Assinatura cancelada com sucesso.']);
     }
 }
