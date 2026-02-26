@@ -56,5 +56,7 @@ Route::prefix('admin/billing')->middleware('auth:sanctum')->group(function () {
         ->name('admin.webhook.register');
     Route::get('/webhooks', [\App\Http\Controllers\Api\Admin\AdminWebhookController::class, 'index'])
         ->name('admin.webhook.list');
+    Route::get('/webhook-url', [\App\Http\Controllers\Api\Admin\AdminWebhookController::class, 'webhookUrl'])
+        ->name('admin.webhook.url');
 });
 

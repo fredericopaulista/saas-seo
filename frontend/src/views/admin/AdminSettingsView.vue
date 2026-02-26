@@ -6,6 +6,8 @@ import { Settings, Save, KeyRound } from 'lucide-vue-next'
 const loading = ref(false)
 const saving = ref(false)
 const registeringWebhook = ref(false)
+const webhookUrl = ref('')
+const copied = ref(false)
 
 const settings = ref({
     GOOGLE_CLIENT_ID: '',
@@ -19,6 +21,10 @@ const settings = ref({
 
 onMounted(async () => {
     fetchSettings()
+    // Fetch webhook URL for display
+    api.get('/admin/billing/webhook-url').then(({ data }) => {
+        webhookUrl.value = data.webhook_url || ''
+    }).catch(() => {})
 })
 
 const fetchSettings = async () => {
@@ -118,6 +124,16 @@ const registerWebhook = async () => {
         alert(e.response?.data?.error || 'Falha ao registrar webhook no Asaas.')
     } finally {
         registeringWebhook.value = false
+    }
+}
+
+const copyWebhookUrl = async () => {
+    try {
+        await navigator.clipboard.writeText(webhookUrl.value)
+        copied.value = true
+        setTimeout(() => { copied.value = false }, 2000)
+    } catch {
+        prompt('Copie a URL abaixo:', webhookUrl.value)
     }
 }
 
@@ -238,6 +254,22 @@ const registerWebhook = async () => {
                 </div>
             </div>
             <div class="p-6 space-y-5">
+                <!-- Webhook URL display -->
+                <div v-if="webhookUrl" class="bg-gray-950 border border-gray-700 rounded-xl overflow-hidden">
+                    <div class="px-4 py-2 border-b border-gray-800 flex items-center justify-between">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">URL do Webhook (configure no Asaas)</span>
+                        <span v-if="copied" class="text-xs text-emerald-400 font-medium">✓ Copiado!</span>
+                    </div>
+                    <div class="flex items-center">
+                        <code class="flex-1 px-4 py-3 text-xs font-mono text-emerald-400 break-all">{{ webhookUrl }}</code>
+                        <button
+                            @click="copyWebhookUrl"
+                            class="flex-shrink-0 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition-all text-sm border-l border-gray-800"
+                            title="Copiar URL"
+                        >📋</button>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">Ambiente de Operação</label>
                     <select 

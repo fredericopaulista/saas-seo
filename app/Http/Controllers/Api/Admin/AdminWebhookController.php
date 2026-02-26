@@ -19,11 +19,11 @@ class AdminWebhookController extends Controller
     public function register(Request $request)
     {
         $webhookUrl   = rtrim(config('app.url'), '/') . '/api/webhooks/asaas';
-        $webhookToken = config('services.asaas.webhook_token');
+        $webhookToken = AsaasGatewayService::getWebhookToken(); // reads from DB
 
         if (empty($webhookToken)) {
             return response()->json([
-                'error' => 'ASAAS_WEBHOOK_TOKEN não está configurado no .env.',
+                'error' => 'ASAAS_WEBHOOK_TOKEN não está configurado no painel Admin → Configurações.',
             ], 422);
         }
 
@@ -53,5 +53,17 @@ class AdminWebhookController extends Controller
         $result = $this->asaas->listWebhooks();
 
         return response()->json($result ?? ['data' => []]);
+    }
+
+    /**
+     * Return the webhook URL that should be registered in Asaas.
+     *
+     * GET /api/admin/billing/webhook-url
+     */
+    public function webhookUrl()
+    {
+        return response()->json([
+            'webhook_url' => rtrim(config('app.url'), '/') . '/api/webhooks/asaas',
+        ]);
     }
 }
