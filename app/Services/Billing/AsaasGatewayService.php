@@ -63,11 +63,16 @@ class AsaasGatewayService
         $setting = Setting::where('key', 'ASAAS_WEBHOOK_TOKEN')->first();
 
         if ($setting && !empty($setting->value)) {
-            try {
-                return Crypt::decryptString($setting->value);
-            } catch (\Exception $e) {
-                // Fall through to env fallback
+            $val = $setting->value;
+            // Check if it's likely a Laravel encrypted string (starts with eyJ)
+            if (str_starts_with($val, 'eyJ')) {
+                try {
+                    return Crypt::decryptString($val);
+                } catch (\Exception $e) {
+                    return $val; // Fallback to plain
+                }
             }
+            return $val;
         }
 
         return config('services.asaas.webhook_token', '');

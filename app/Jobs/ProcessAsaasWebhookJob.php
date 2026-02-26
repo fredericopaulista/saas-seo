@@ -63,13 +63,14 @@ class ProcessAsaasWebhookJob implements ShouldQueue
 
     protected function process(WebhookEvent $record): void
     {
-        $payment      = $this->payload['payment']      ?? null;
-        $subscription = $this->payload['payment']['subscription'] ?? null;
+        // Safe extraction using data_get helpers
+        $paymentId    = data_get($this->payload, 'payment.id');
+        $subscription = data_get($this->payload, 'payment.subscription');
 
         Log::info("Asaas Webhook [{$this->eventType}]", [
             'event_id'       => $this->eventId,
             'subscription_id' => $subscription,
-            'payment_id'     => $payment['id'] ?? null,
+            'payment_id'     => $paymentId,
         ]);
 
         switch ($this->eventType) {

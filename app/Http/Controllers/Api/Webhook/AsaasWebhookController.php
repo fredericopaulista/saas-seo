@@ -22,45 +22,47 @@ class AsaasWebhookController extends Controller
      */
     public function handle(Request $request)
     {
-        // ── 1. Token Validation ──────────────────────────────────────────────
-        // Token is managed in the Super Admin panel → stored encrypted in DB
-        $expectedToken = AsaasGatewayService::getWebhookToken();
+        try {
+            // ── 1. Token Validation ──────────────────────────────────────────────
+            $expectedToken = AsaasGatewayService::getWebhookToken();
 
-        // Only enforce validation if a token is configured
-        if (!empty($expectedToken)) {
-            $receivedToken = $request->header('asaas-access-token');
-            if ($receivedToken !== $expectedToken) {
-                Log::warning('Asaas Webhook: Unauthorized request — invalid token.', [
-                    'ip' => $request->ip(),
-                ]);
-                return response()->json(['error' => 'Unauthorized'], 401);
+            if (!empty($expectedToken)) {
+                $receivedToken = $request->header('asaas-access-token');
+                if ($receivedToken !== $expectedToken) {
+                    Log::warning('Asaas Webhook: Unauthorized request — invalid token.');
+                    return response()->json(['error' => 'Unauthorized'], 401);
+                }
             }
+
+            // ── 2. Extract Event Data ────────────────────────────────────────────
+            $eventId   = $request->input('id');
+            $eventType = $request->input('event');
+            $payload   = $request->all();
+
+            if (!$eventId || !$eventType) {
+                Log::warning('Asaas Webhook: Malformed payload received.', ['body' => $payload]);
+                return response()->json(['status' => 'ignored', 'reason' => 'missing event id or type'], 400);
+            }
+
+            Log::info("Asaas Webhook received: [{$eventType}]", ['event_id' => $eventId]);
+
+            // ── 3. Idempotency Check ─────────────────────────────────────────────
+            if (WebhookEvent::alreadyProcessed($eventId)) {
+                return response()->json(['status' => 'already_processed']);
+            }
+
+            // ── 4. Dispatch Async Job ────────────────────────────────────────────
+            ProcessAsaasWebhookJob::dispatch($eventId, $eventType, $payload);
+
+            return response()->json(['status' => 'queued']);
+        } catch (\Throwable $e) {
+            Log::error('Asaas Webhook CRITICAL FAILURE:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Internal Server Error', 'details' => $e->getMessage()], 500);
         }
-
-        // ── 2. Extract Event Data ────────────────────────────────────────────
-        $eventId   = $request->input('id');
-        $eventType = $request->input('event');
-        $payload   = $request->all();
-
-        // Ignore malformed payloads
-        if (!$eventId || !$eventType) {
-            Log::warning('Asaas Webhook: Malformed payload received.', ['body' => $payload]);
-            return response()->json(['status' => 'ignored', 'reason' => 'missing event id or type'], 400);
-        }
-
-        Log::info("Asaas Webhook received: [{$eventType}]", ['event_id' => $eventId]);
-
-        // ── 3. Idempotency Check ─────────────────────────────────────────────
-        // Asaas guarantees "at-least-once" delivery, so duplicates can arrive.
-        // We check quickly here — the Job also checks before any DB writes.
-        if (WebhookEvent::alreadyProcessed($eventId)) {
-            return response()->json(['status' => 'already_processed']);
-        }
-
-        // ── 4. Dispatch Async Job ────────────────────────────────────────────
-        ProcessAsaasWebhookJob::dispatch($eventId, $eventType, $payload);
-
-        // Return 200 immediately — Asaas will mark notification as successful.
-        return response()->json(['status' => 'queued']);
     }
 }
