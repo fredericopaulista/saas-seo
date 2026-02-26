@@ -12,7 +12,7 @@ class AsaasGatewayService
     public function __construct()
     {
         // Using Sandbox defaults if env not provided
-        $this->apiKey = config('services.asaas.key');
+        $this->apiKey = config('services.asaas.key', '');
         $this->baseUrl = config('services.asaas.url', 'https://sandbox.asaas.com/api/v3');
     }
 
