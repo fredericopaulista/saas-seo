@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
+import { useUIStore } from '@/stores/ui'
 import { CreditCard, ArrowUpRight, CheckCircle2, XCircle, AlertCircle, Clock, Ban, RotateCcw } from 'lucide-vue-next'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -11,6 +12,7 @@ const payload = ref({
     subscriptions: [] as any[]
 })
 const processingId = ref<number | null>(null)
+const uiStore = useUIStore()
 
 const fetchBillingData = async () => {
     loading.value = true
@@ -71,28 +73,44 @@ const formatDate = (date: string) => {
 }
 
 const cancelSubscription = async (id: number) => {
-    if (!confirm('Deseja realmente CANCELAR esta assinatura no Asaas?')) return
+    const confirmed = await uiStore.confirm({
+        title: 'Cancelar Assinatura',
+        message: 'Deseja realmente CANCELAR esta assinatura no Asaas? Esta ação interromperá as cobranças futuras.',
+        confirmText: 'Sim, Cancelar',
+        type: 'danger'
+    })
+    
+    if (!confirmed) return
+    
     processingId.value = id
     try {
         await api.post(`/admin/subscriptions/${id}/cancel`)
-        alert('Assinatura cancelada com sucesso.')
+        uiStore.addToast('Assinatura cancelada com sucesso.', 'success')
         fetchBillingData()
     } catch (e: any) {
-        alert(e.response?.data?.error || 'Erro ao cancelar assinatura.')
+        uiStore.addToast(e.response?.data?.error || 'Erro ao cancelar assinatura.', 'error')
     } finally {
         processingId.value = null
     }
 }
 
 const refundSubscription = async (id: number) => {
-    if (!confirm('Deseja realmente ESTORNAR o último pagamento desta venda no Asaas?')) return
+    const confirmed = await uiStore.confirm({
+        title: 'Estornar Pagamento',
+        message: 'Deseja realmente ESTORNAR o último pagamento desta venda no Asaas? O valor será devolvido ao cliente.',
+        confirmText: 'Sim, Estornar',
+        type: 'warning'
+    })
+    
+    if (!confirmed) return
+
     processingId.value = id
     try {
         await api.post(`/admin/subscriptions/${id}/refund`)
-        alert('Solicitação de estorno enviada com sucesso ao Asaas.')
+        uiStore.addToast('Solicitação de estorno enviada com sucesso ao Asaas.', 'success')
         fetchBillingData()
     } catch (e: any) {
-        alert(e.response?.data?.error || 'Erro ao processar estorno.')
+        uiStore.addToast(e.response?.data?.error || 'Erro ao processar estorno.', 'error')
     } finally {
         processingId.value = null
     }

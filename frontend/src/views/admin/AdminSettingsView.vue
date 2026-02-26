@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
+import { useUIStore } from '@/stores/ui'
 import { Settings, Save, KeyRound } from 'lucide-vue-next'
+
+const uiStore = useUIStore()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -102,10 +105,10 @@ const saveSettings = async () => {
         }
         
         await api.post('/admin/settings', payload)
-        alert('Configurações Globais salvas com sucesso!')
+        uiStore.addToast('Configurações Globais salvas com sucesso!', 'success')
     } catch (e) {
         console.error('Error saving', e)
-        alert('Falha ao salvar as configurações.')
+        uiStore.addToast('Falha ao salvar as configurações.', 'error')
     } finally {
         saving.value = false
     }
@@ -113,15 +116,15 @@ const saveSettings = async () => {
 
 const registerWebhook = async () => {
     if (!settings.value.ASAAS_WEBHOOK_TOKEN) {
-        alert('Configure e salve o Webhook Token antes de registrar.')
+        uiStore.addToast('Configure e salve o Webhook Token antes de registrar.', 'warning')
         return
     }
     registeringWebhook.value = true
     try {
         const { data } = await api.post('/admin/billing/register-webhook')
-        alert(`Webhook registrado com sucesso!\nURL: ${data.webhook_url}`)
+        uiStore.addToast(`Webhook registrado com sucesso! URL: ${data.webhook_url}`, 'success')
     } catch (e: any) {
-        alert(e.response?.data?.error || 'Falha ao registrar webhook no Asaas.')
+        uiStore.addToast(e.response?.data?.error || 'Falha ao registrar webhook no Asaas.', 'error')
     } finally {
         registeringWebhook.value = false
     }
@@ -131,9 +134,10 @@ const copyWebhookUrl = async () => {
     try {
         await navigator.clipboard.writeText(webhookUrl.value)
         copied.value = true
+        uiStore.addToast('URL do Webhook copiada!', 'success')
         setTimeout(() => { copied.value = false }, 2000)
     } catch {
-        prompt('Copie a URL abaixo:', webhookUrl.value)
+        uiStore.addToast('Falha ao copiar automaticamente. Selecione o texto manualmente.', 'warning')
     }
 }
 
