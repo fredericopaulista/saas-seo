@@ -23,7 +23,7 @@ class BillingController extends Controller
      */
     public function getPlans()
     {
-        return response()->json(Plan::all());
+        return response()->json(Plan::where('slug', '!=', 'super-admin-unlimited')->get());
     }
 
     /**
@@ -31,13 +31,13 @@ class BillingController extends Controller
      */
     public function mySubscription()
     {
-        $tenant = auth()->user()->tenant;
-        if (!$tenant) {
+        $tenantId = auth()->user()->current_tenant_id;
+        if (!$tenantId) {
             return response()->json(['subscription' => null]);
         }
 
         $subscription = Subscription::with('plan')
-            ->where('tenant_id', $tenant->id)
+            ->where('tenant_id', $tenantId)
             ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])
             ->latest()
             ->first();
@@ -56,11 +56,11 @@ class BillingController extends Controller
         ]);
 
         $user = auth()->user();
-        $tenant = $user->tenant; // Assuming user->tenant mapping is established
+        $tenantId = $user->current_tenant_id; 
 
         // Prevent double subscribing active plans if trying to subscribe to the same plan
-        $activeSubscription = Subscription::where('tenant_id', $tenant->id)
-            ->where('status_gateway', 'ACTIVE')
+        $activeSubscription = Subscription::where('tenant_id', $tenantId)
+            ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])
             ->first();
 
         // If they have an active plan and they chose the same plan:
@@ -88,7 +88,7 @@ class BillingController extends Controller
             $user->name,
             $user->email,
             // Assuming tenant or user has CPF/CNPJ. We fallback to dummy for MVP flow test.
-            $tenant->cpf_cnpj ?? '00000000000' 
+            '00000000000' 
         );
 
         if (!$remoteCustomer) {
@@ -107,7 +107,7 @@ class BillingController extends Controller
 
         // Create local record pending payment notification
         $subscription = Subscription::create([
-            'tenant_id' => $tenant->id,
+            'tenant_id' => $tenantId,
             'plan_id' => $plan->id,
             'asaas_subscription_id' => $remoteSubscription['id'],
             'status' => 'pending',
@@ -127,9 +127,9 @@ class BillingController extends Controller
      */
     public function cancelSubscription()
     {
-        $tenant = auth()->user()->tenant;
+        $tenantId = auth()->user()->current_tenant_id;
         
-        $activeSubscription = Subscription::where('tenant_id', $tenant->id)
+        $activeSubscription = Subscription::where('tenant_id', $tenantId)
             ->whereIn('status_gateway', ['ACTIVE', 'PENDING'])
             ->first();
             
