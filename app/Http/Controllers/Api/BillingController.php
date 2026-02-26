@@ -93,6 +93,22 @@ class BillingController extends Controller
 
         $plan = Plan::find($request->plan_id);
 
+        // Plans with a zero price (e.g. Super Admin, free tiers) bypass the payment gateway entirely
+        if ((float) $plan->price <= 0) {
+            $subscription = Subscription::create([
+                'tenant_id' => $tenantId,
+                'plan_id' => $plan->id,
+                'asaas_subscription_id' => null,
+                'status' => 'active',
+                'status_gateway' => 'ACTIVE',
+            ]);
+            return response()->json([
+                'message' => 'Plano ativado com sucesso.',
+                'subscription' => $subscription,
+                'paymentUrl' => null
+            ]);
+        }
+
         /**
          * Real-world scenario: We'd check if customer exists in DB first, 
          * then create if not, but for MVP we send directly.
@@ -111,7 +127,7 @@ class BillingController extends Controller
         $remoteSubscription = $this->asaasService->createSubscription(
             $remoteCustomer['id'],
             $request->billingType,
-            $plan->price
+            (float) $plan->price
         );
 
         if (!$remoteSubscription) {
