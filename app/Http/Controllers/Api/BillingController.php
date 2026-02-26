@@ -60,7 +60,8 @@ class BillingController extends Controller
     {
         $request->validate([
             'plan_id' => 'required|exists:plans,id',
-            'billingType' => 'required|in:CREDIT_CARD,PIX,BOLETO'
+            'billingType' => 'required|in:CREDIT_CARD,PIX,BOLETO',
+            'cpfCnpj' => 'required|string|min:11'
         ]);
 
         $user = auth()->user();
@@ -99,8 +100,8 @@ class BillingController extends Controller
         $remoteCustomer = $this->asaasService->createCustomer(
             $user->name,
             $user->email,
-            // Assuming tenant or user has CPF/CNPJ. We fallback to dummy for MVP flow test.
-            '00000000000' 
+            // Dynamically passed from frontend checkout modal
+            $request->cpfCnpj 
         );
 
         if (!$remoteCustomer) {

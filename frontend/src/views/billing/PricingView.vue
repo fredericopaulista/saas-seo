@@ -10,6 +10,11 @@ const subscribingTo = ref<number | null>(null)
 const currentSubscription = ref<any>(null)
 const isCanceling = ref(false)
 
+// CPF Modal State
+const showCpfModal = ref(false)
+const cpfInput = ref('')
+const selectedPlanId = ref<number | null>(null)
+
 const router = useRouter()
 
 onMounted(async () => {
@@ -32,11 +37,27 @@ onMounted(async () => {
     }
 })
 
-const subscribe = async (planId: number) => {
-    subscribingTo.value = planId
+const openSubscribeModal = (planId: number) => {
+    selectedPlanId.value = planId
+    cpfInput.value = '' // reset input
+    showCpfModal.value = true
+}
+
+const confirmSubscription = async () => {
+    if (!cpfInput.value || cpfInput.value.length < 11) {
+        alert('Por favor, insira um CPF ou CNPJ válido.')
+        return
+    }
+
+    if (!selectedPlanId.value) return
+
+    subscribingTo.value = selectedPlanId.value
+    showCpfModal.value = false // hide modal while loading
+
     try {
         const { data } = await api.post('/billing/subscribe', {
-            plan_id: planId,
+            plan_id: selectedPlanId.value,
+            cpfCnpj: cpfInput.value,
             billingType: 'CREDIT_CARD' // hardcoding test value for MVP bypass
         })
         
@@ -52,6 +73,7 @@ const subscribe = async (planId: number) => {
         alert(e.response?.data?.message || 'Falha ao processar assinatura.')
     } finally {
         subscribingTo.value = null
+        selectedPlanId.value = null
     }
 }
 
@@ -145,7 +167,7 @@ const translateCycle = (cycle: string) => {
             </ul>
 
             <button 
-              @click="subscribe(plan.id)" 
+              @click="openSubscribeModal(plan.id)" 
               :disabled="subscribingTo === plan.id || (currentSubscription && currentSubscription.plan_id === plan.id)"
               class="w-full py-4 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
               :class="[
@@ -164,6 +186,47 @@ const translateCycle = (cycle: string) => {
         </div>
 
       </div>
+      </div>
+    </div>
+
+    <!-- CPF/CNPJ Checkout Modal -->
+    <div v-if="showCpfModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
+        <!-- Accent Line -->
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+        
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-white mb-2">Detalhes de Faturamento</h3>
+          <p class="text-sm text-gray-400 mb-6">
+            O Asaas, nosso gateway e parceiro financeiro oficial, exige um documento válido brasileiro (CPF ou CNPJ) associado ao titular da cobrança.
+          </p>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-300 mb-2">CPF ou CNPJ (apenas números)</label>
+            <input 
+                v-model="cpfInput" 
+                type="text" 
+                placeholder="Ex: 12345678900" 
+                class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-mono"
+                @keyup.enter="confirmSubscription"
+            >
+          </div>
+
+          <div class="flex gap-3">
+            <button 
+                @click="showCpfModal = false" 
+                class="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-gray-800 hover:bg-gray-700 hover:text-white transition-all text-sm border border-gray-700"
+            >
+                Cancelar
+            </button>
+            <button 
+                @click="confirmSubscription" 
+                class="flex-1 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/25 transition-all text-sm border border-indigo-500/50"
+            >
+                Continuar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
