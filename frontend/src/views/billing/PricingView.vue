@@ -14,14 +14,19 @@ const router = useRouter()
 
 onMounted(async () => {
     try {
-        const [plansRes, subRes] = await Promise.all([
-            api.get('/billing/plans'),
-            api.get('/billing/my-subscription')
-        ])
+        const plansRes = await api.get('/billing/plans')
         plans.value = plansRes.data
-        currentSubscription.value = subRes.data.subscription
+        
+        try {
+            const subRes = await api.get('/billing/my-subscription')
+            currentSubscription.value = subRes.data?.subscription || null
+        } catch (subErr) {
+            console.warn('No active subscription found or tenant missing:', subErr)
+            currentSubscription.value = null
+        }
+
     } catch (e) {
-        console.error('Failed to load billing data:', e)
+        console.error('Failed to load billing plans:', e)
     } finally {
         loading.value = false
     }
