@@ -100,8 +100,8 @@ class BillingController extends Controller
         $remoteCustomer = $this->asaasService->createCustomer(
             $user->name,
             $user->email,
-            // Dynamically passed from frontend checkout modal
-            $request->cpfCnpj 
+            // Dynamically passed from frontend checkout modal, fallback to empty string if null
+            $request->cpfCnpj ?? ''
         );
 
         if (!$remoteCustomer) {

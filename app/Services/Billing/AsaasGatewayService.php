@@ -41,7 +41,7 @@ class AsaasGatewayService
     /**
      * Create or retrieve a customer in Asaas
      */
-    public function createCustomer(string $name, string $email, string $cpfCnpj): ?array
+    public function createCustomer(string $name, string $email, ?string $cpfCnpj): ?array
     {
         $response = Http::withHeaders([
             'access_token' => $this->apiKey,
