@@ -5,6 +5,11 @@ import { CreditCard, ArrowUpRight, CheckCircle2, XCircle, AlertCircle, Clock, Ba
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+const loading = ref(true)
+const payload = ref({
+    plans: [] as any[],
+    subscriptions: [] as any[]
+})
 const processingId = ref<number | null>(null)
 
 const fetchBillingData = async () => {
