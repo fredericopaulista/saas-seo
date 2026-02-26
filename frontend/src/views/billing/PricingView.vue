@@ -15,6 +15,15 @@ const showCheckoutModal = ref(false)
 const selectedPlanId = ref<number | null>(null)
 const selectedPlan = ref<any>(null)
 
+// Payment Result Modal State
+const showPaymentResult = ref(false)
+const paymentResult = ref<{
+  message: string
+  paymentUrl: string | null
+  pixData: { pixQrCode: string | null; pixCopiaECola: string | null; invoiceUrl: string | null } | null
+  billingType: string
+} | null>(null)
+
 const checkout = ref({
     name: '',
     cpfCnpj: '',
@@ -36,6 +45,28 @@ const openSubscribeModal = (planId: number) => {
     checkoutError.value = ''
     checkout.value = { name: '', cpfCnpj: '', phone: '', billingType: 'PIX', cardHolder: '', cardNumber: '', cardExpiry: '', cardCvv: '' }
     showCheckoutModal.value = true
+}
+
+const copyToClipboard = async (text: string) => {
+    try {
+        await navigator.clipboard.writeText(text)
+        alert('Código PIX copiado!')
+    } catch {
+        // Fallback for older browsers
+        const el = document.createElement('textarea')
+        el.value = text
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+        alert('Código PIX copiado!')
+    }
+}
+
+const closePaymentResult = () => {
+    showPaymentResult.value = false
+    paymentResult.value = null
+    window.location.reload()
 }
 
 const confirmSubscription = async () => {
@@ -81,23 +112,31 @@ const confirmSubscription = async () => {
         }
 
         const { data } = await api.post('/billing/subscribe', payload)
-        
-        if (data.paymentUrl) {
-           window.location.href = data.paymentUrl
-        } else {
-           alert(data.message)
-           window.location.reload()
+
+        // Redirect immediately if we have a payment URL (for credit card or external link)
+        if (data.paymentUrl && checkout.value.billingType !== 'PIX') {
+            window.location.href = data.paymentUrl
+            return
         }
-        
+
+        // Show the result modal with PIX data or payment link
+        paymentResult.value = {
+            message: data.message,
+            paymentUrl: data.paymentUrl,
+            pixData: data.pixData ?? null,
+            billingType: checkout.value.billingType,
+        }
+        showPaymentResult.value = true
+
     } catch (e: any) {
-        alert(e.response?.data?.message || 'Falha ao processar assinatura.')
+        // Re-open checkout modal with error on failure
+        showCheckoutModal.value = true
+        checkoutError.value = e.response?.data?.message || 'Falha ao processar assinatura. Tente novamente.'
     } finally {
         subscribingTo.value = null
         selectedPlanId.value = null
     }
 }
-
-
 
 onMounted(async () => {
     try {
@@ -336,6 +375,95 @@ const translateCycle = (cycle: string) => {
         </div>
       </div>
     </div>
+
+    <!-- Processing overlay (after modal is closed, while waiting for API) -->
+    <div v-if="subscribingTo !== null && !showCheckoutModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-10 text-center max-w-sm w-full mx-4 shadow-2xl">
+        <div class="w-14 h-14 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+        <h3 class="text-lg font-bold text-white mb-2">Processando...</h3>
+        <p class="text-gray-400 text-sm">Gerando sua assinatura no gateway de pagamento. Aguarde.</p>
+      </div>
+    </div>
+
+    <!-- Payment Result Modal -->
+    <div v-if="showPaymentResult && paymentResult" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
+        <!-- Accent Line -->
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-emerald-400"></div>
+
+        <div class="p-8 text-center">
+          <!-- Success icon -->
+          <div class="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-2">Assinatura Criada!</h3>
+          <p class="text-gray-400 text-sm mb-6">{{ paymentResult.message }}</p>
+
+          <!-- PIX Data Display -->
+          <div v-if="paymentResult.billingType === 'PIX'" class="space-y-4">
+            <!-- QR Code image (if available) -->
+            <div v-if="paymentResult.pixData?.pixQrCode" class="bg-white rounded-xl p-4 mx-auto inline-block">
+              <img :src="'data:image/png;base64,' + paymentResult.pixData.pixQrCode" alt="QR Code PIX" class="w-48 h-48 object-contain mx-auto" />
+            </div>
+
+            <!-- Pix copia e cola -->
+            <div v-if="paymentResult.pixData?.pixCopiaECola" class="bg-gray-950 border border-gray-700 rounded-xl p-4 text-left">
+              <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-2">PIX Copia e Cola</p>
+              <p class="text-xs font-mono text-green-400 break-all leading-relaxed">{{ paymentResult.pixData.pixCopiaECola }}</p>
+              <button 
+                @click="copyToClipboard(paymentResult!.pixData!.pixCopiaECola!)"
+                class="mt-3 w-full py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg text-xs font-bold border border-green-500/30 transition-all"
+              >
+                📋 Copiar Código PIX
+              </button>
+            </div>
+
+            <!-- Fallback link to invoice -->
+            <div v-if="paymentResult.pixData?.invoiceUrl || paymentResult.paymentUrl">
+              <a 
+                :href="paymentResult.pixData?.invoiceUrl || paymentResult.paymentUrl || '#'" 
+                target="_blank"
+                class="block w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-all text-center"
+              >
+                🔗 Abrir Página de Pagamento
+              </a>
+            </div>
+
+            <!-- No PIX data: just a message -->
+            <div v-if="!paymentResult.pixData && !paymentResult.paymentUrl" class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+              <p class="text-yellow-400 text-sm">Sua assinatura foi criada. Você receberá as instruções de pagamento por e-mail em breve.</p>
+            </div>
+          </div>
+
+          <!-- Credit Card / other result -->
+          <div v-else>
+            <div v-if="paymentResult.paymentUrl">
+              <a 
+                :href="paymentResult.paymentUrl" 
+                target="_blank"
+                class="block w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-all text-center mb-3"
+              >
+                🔗 Acessar Página de Pagamento
+              </a>
+            </div>
+            <div v-else class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-4">
+              <p class="text-blue-400 text-sm">Assinatura ativada! Você receberá a confirmação por e-mail.</p>
+            </div>
+          </div>
+
+          <button 
+            @click="closePaymentResult"
+            class="mt-4 w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-xl font-bold text-sm transition-all border border-gray-700"
+          >
+            Fechar e Atualizar
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 

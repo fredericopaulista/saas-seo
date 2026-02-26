@@ -143,11 +143,34 @@ class BillingController extends Controller
             'status_gateway' => 'PENDING',
         ]);
 
+        // Asaas does NOT return invoiceUrl directly on subscription creation.
+        // We need to fetch the auto-generated payment for this subscription.
+        $payment = null;
+        $paymentUrl = null;
+        $pixData = null;
+
+        // Small delay to allow Asaas to generate the payment record
+        sleep(1);
+        $payment = $this->asaasService->getSubscriptionPayments($remoteSubscription['id']);
+
+        if ($payment) {
+            $paymentUrl = $payment['invoiceUrl'] ?? $payment['bankSlipUrl'] ?? null;
+
+            if ($request->billingType === 'PIX' && isset($payment['id'])) {
+                // For PIX, we can return qr code data if available on the payment object
+                $pixData = [
+                    'pixQrCode'    => $payment['pixQrCode']    ?? null,
+                    'pixCopiaECola'=> $payment['pixCopiaECola']?? null,
+                    'invoiceUrl'   => $paymentUrl,
+                ];
+            }
+        }
+
         return response()->json([
-            'message' => 'Assinatura gerada com sucesso. Aguardando pagamento.',
+            'message'     => 'Assinatura gerada com sucesso. Aguardando pagamento.',
             'subscription' => $subscription,
-            // Asaas usually returns invoiceUrl for BOLETO/PIX, or credit card forms.
-            'paymentUrl' => $remoteSubscription['invoiceUrl'] ?? null 
+            'paymentUrl'  => $paymentUrl,
+            'pixData'     => $pixData,
         ]);
     }
 
