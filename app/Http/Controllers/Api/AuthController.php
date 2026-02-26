@@ -70,10 +70,12 @@ class AuthController extends Controller
         $user->assignRole('user');
 
         // Depending on requirements, create a default Tenant/Workspace for new users
+        $baseSlug = strtolower(preg_replace('/[^A-Za-z0-9-]+/', '-', $user->name));
+        $domain = $baseSlug . '-' . substr(uniqid(), -5) . '.localhost';
+
         $tenant = Tenant::create([
             'name' => "Workspace de {$user->name}",
-            // Using a simple slug format for domain for early MVPs 
-            'domain' => strtolower(preg_replace('/[^A-Za-z0-9-]+/', '-', $user->name)) . '.localhost'
+            'domain' => $domain
         ]);
 
         $user->tenants()->attach($tenant->id);
