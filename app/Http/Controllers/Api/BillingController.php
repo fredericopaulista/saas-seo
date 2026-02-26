@@ -61,11 +61,11 @@ class BillingController extends Controller
         Log::info('Subscription Request Data:', $request->all());
 
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'plan_id' => 'required',
-            'billingType' => 'required',
-            'cpfCnpj' => 'required',
-            'phone' => 'nullable', // Flexible for debugging
-            'name' => 'nullable',  // Flexible for debugging
+            'plan_id' => 'required|exists:plans,id',
+            'billingType' => 'required|in:CREDIT_CARD,PIX,BOLETO',
+            'cpfCnpj' => 'required|string|min:11',
+            'phone' => 'required|string|min:10',
+            'name' => 'required|string|min:3',
             'creditCard' => 'nullable|array',
             'creditCardHolderInfo' => 'nullable|array',
         ]);
@@ -120,6 +120,11 @@ class BillingController extends Controller
                 'subscription' => $subscription,
                 'paymentUrl' => null
             ]);
+        }
+
+        // Check if API Key is configured
+        if (empty(app(\App\Services\Billing\AsaasGatewayService::class)->getApiKey())) {
+            return response()->json(['message' => 'O sistema de pagamentos não está configurado. O administrador precisa inserir a Asaas API Key no painel.'], 500);
         }
 
         $phone = $request->phone ?: ($request->creditCardHolderInfo['phone'] ?? null);

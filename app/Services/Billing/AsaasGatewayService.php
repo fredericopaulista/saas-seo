@@ -20,10 +20,16 @@ class AsaasGatewayService
         
         $dbApiKey = '';
         if ($apiKeySetting && !empty($apiKeySetting->value)) {
-            try {
-                $dbApiKey = Crypt::decryptString($apiKeySetting->value);
-            } catch (\Exception $e) {
-                // Keep it empty on fail
+            $val = $apiKeySetting->value;
+            // Check if it's likely a Laravel encrypted string (starts with eyJ)
+            if (str_starts_with($val, 'eyJ')) {
+                try {
+                    $dbApiKey = Crypt::decryptString($val);
+                } catch (\Exception $e) {
+                    $dbApiKey = $val; // Fallback to plain if it's not actually encrypted
+                }
+            } else {
+                $dbApiKey = $val;
             }
         }
         
@@ -37,6 +43,14 @@ class AsaasGatewayService
         } else {
             $this->baseUrl = 'https://sandbox.asaas.com/api/v3';
         }
+    }
+
+    /**
+     * Get the current API Key
+     */
+    public function getApiKey(): string
+    {
+        return $this->apiKey;
     }
 
     /**

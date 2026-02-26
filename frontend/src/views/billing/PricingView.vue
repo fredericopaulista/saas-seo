@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { Check } from 'lucide-vue-next'
 
+// Client Version: 1.0.1 (Force Cache Refresh)
+
 const plans = ref<any[]>([])
 const loading = ref(true)
 const subscribingTo = ref<number | null>(null)
