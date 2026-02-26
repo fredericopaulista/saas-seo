@@ -10,7 +10,9 @@ const settings = ref({
     GOOGLE_CLIENT_ID: '',
     GOOGLE_CLIENT_SECRET: '',
     GOOGLE_REDIRECT_URI: '',
-    OPENAI_API_KEY: ''
+    OPENAI_API_KEY: '',
+    ASAAS_ENVIRONMENT: 'sandbox',
+    ASAAS_API_KEY: ''
 })
 
 onMounted(async () => {
@@ -32,6 +34,12 @@ const fetchSettings = async () => {
         if (data.ai_services) {
             data.ai_services.forEach((item: any) => {
                 if (item.key === 'OPENAI_API_KEY') settings.value.OPENAI_API_KEY = item.value || ''
+            })
+        }
+        if (data.asaas_gateway) {
+            data.asaas_gateway.forEach((item: any) => {
+                if (item.key === 'ASAAS_ENVIRONMENT') settings.value.ASAAS_ENVIRONMENT = item.value || 'sandbox'
+                if (item.key === 'ASAAS_API_KEY') settings.value.ASAAS_API_KEY = item.value || ''
             })
         }
     } catch (e) {
@@ -65,6 +73,16 @@ const saveSettings = async () => {
                     key: 'OPENAI_API_KEY',
                     value: settings.value.OPENAI_API_KEY,
                     group: 'ai_services'
+                },
+                {
+                    key: 'ASAAS_ENVIRONMENT',
+                    value: settings.value.ASAAS_ENVIRONMENT,
+                    group: 'asaas_gateway'
+                },
+                {
+                    key: 'ASAAS_API_KEY',
+                    value: settings.value.ASAAS_API_KEY,
+                    group: 'asaas_gateway'
                 }
             ]
         }
@@ -179,6 +197,47 @@ const saveSettings = async () => {
                  <div class="bg-purple-500/10 border border-purple-500/20 text-purple-400 p-4 rounded-lg text-sm flex gap-3 items-start">
                     <p>
                         <strong>Dica:</strong> Essa chave é utilizada no Job diário que analisa os dados do Search Console puxados dos clientes e escreve sugestões de melhoria (Opportunities e Anomalies) na página de Insights de cada Projeto.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asaas Gateway Card -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mt-6">
+            <div class="p-6 border-b border-gray-800 bg-gray-900/50 flex items-center gap-3">
+                <div class="bg-emerald-500/10 p-2 rounded-lg">
+                    <KeyRound class="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                   <h3 class="font-bold text-white">Gateway de Pagamento (Asaas)</h3>
+                   <p class="text-xs text-gray-500 mt-1">Configurações para faturamento, cobranças e assinaturas via Asaas API.</p>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Ambiente de Operação</label>
+                    <select 
+                        v-model="settings.ASAAS_ENVIRONMENT" 
+                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
+                    >
+                        <option value="sandbox">Sandbox (Testes)</option>
+                        <option value="production">Produção (Real)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Asaas API Key (access_token)</label>
+                    <input 
+                        v-model="settings.ASAAS_API_KEY" 
+                        type="password" 
+                        placeholder="Ex: $aact_YTU5YTE0M2M2N2I4MTliNDgw..." 
+                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
+                    >
+                </div>
+                
+                 <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-lg text-sm flex gap-3 items-start">
+                    <p>
+                        <strong>Segurança:</strong> A chave de API do Asaas será automaticamente criptografada antes de ser salva no banco de dados (AES-256-CBC) para proteger as transações financeiras dos clientes.
                     </p>
                 </div>
             </div>

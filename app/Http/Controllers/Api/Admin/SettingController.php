@@ -10,7 +10,20 @@ class SettingController extends Controller
 {
     public function index()
     {
-        return response()->json(Setting::all()->groupBy('group'));
+        $settings = Setting::all();
+        
+        foreach ($settings as $setting) {
+            if ($setting->key === 'ASAAS_API_KEY' && !empty($setting->value)) {
+                try {
+                    $setting->value = \Illuminate\Support\Facades\Crypt::decryptString($setting->value);
+                } catch (\Exception $e) {
+                    // Ignore decryption failures (e.g., if token changes or legacy plain text exists)
+                    $setting->value = '';
+                }
+            }
+        }
+
+        return response()->json($settings->groupBy('group'));
     }
 
     public function store(Request $request)
@@ -23,10 +36,16 @@ class SettingController extends Controller
         ]);
 
         foreach ($request->settings as $setting) {
+            $value = $setting['value'];
+
+            if ($setting['key'] === 'ASAAS_API_KEY' && !empty($value)) {
+                $value = \Illuminate\Support\Facades\Crypt::encryptString($value);
+            }
+
             Setting::updateOrCreate(
                 ['key' => $setting['key']],
                 [
-                    'value' => $setting['value'], 
+                    'value' => $value, 
                     'group' => $setting['group']
                 ]
             );

@@ -3,6 +3,8 @@
 namespace App\Services\Billing;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Crypt;
+use App\Models\Setting;
 
 class AsaasGatewayService
 {
@@ -11,9 +13,29 @@ class AsaasGatewayService
 
     public function __construct()
     {
-        // Using Sandbox defaults if env not provided
-        $this->apiKey = config('services.asaas.key', '');
-        $this->baseUrl = config('services.asaas.url', 'https://sandbox.asaas.com/api/v3');
+        // Try to load via database Settings
+        $apiKeySetting = Setting::where('key', 'ASAAS_API_KEY')->first();
+        $envSetting = Setting::where('key', 'ASAAS_ENVIRONMENT')->first();
+        
+        $dbApiKey = '';
+        if ($apiKeySetting && !empty($apiKeySetting->value)) {
+            try {
+                $dbApiKey = Crypt::decryptString($apiKeySetting->value);
+            } catch (\Exception $e) {
+                // Keep it empty on fail
+            }
+        }
+        
+        $env = $envSetting ? $envSetting->value : 'sandbox';
+        
+        // Prioritize Database, then .env fallback, then defaults
+        $this->apiKey = $dbApiKey ?: config('services.asaas.key', '');
+        
+        if ($env === 'production') {
+            $this->baseUrl = 'https://api.asaas.com/v3';
+        } else {
+            $this->baseUrl = 'https://sandbox.asaas.com/api/v3';
+        }
     }
 
     /**
