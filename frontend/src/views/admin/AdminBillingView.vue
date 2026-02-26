@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
-import { CreditCard, ArrowUpRight, CheckCircle2, XCircle, AlertCircle } from 'lucide-vue-next'
+import { CreditCard, ArrowUpRight, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-vue-next'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 const loading = ref(true)
 const payload = ref({
@@ -34,6 +36,11 @@ const statusIcon = (status: string) => {
     if (status === 'ACTIVE' || status === 'active') return CheckCircle2
     if (status === 'PENDING' || status === 'pending') return AlertCircle
     return XCircle
+}
+
+const formatDate = (date: string) => {
+    if (!date) return '-'
+    return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
 }
 
 </script>
@@ -73,6 +80,7 @@ const statusIcon = (status: string) => {
               <th class="px-6 py-4 font-medium">Inquilino</th>
               <th class="px-6 py-4 font-medium">Plano Contratado</th>
               <th class="px-6 py-4 font-medium">Ciclo</th>
+              <th class="px-6 py-4 font-medium">Assinado em</th>
               <th class="px-6 py-4 font-medium">Status Gateway</th>
               <th class="px-6 py-4 font-medium">Asaas ID</th>
             </tr>
@@ -87,6 +95,9 @@ const statusIcon = (status: string) => {
                  <span class="text-indigo-400 font-medium">{{ sub.plan ? sub.plan.name : 'Custom' }}</span>
               </td>
               <td class="px-6 py-4 text-gray-500">Mensal</td>
+              <td class="px-6 py-4 text-gray-400 font-mono text-xs">
+                  {{ formatDate(sub.created_at) }}
+              </td>
               <td class="px-6 py-4">
                   <span :class="statusColor(sub.status_gateway || sub.status)" class="px-2 py-1 rounded inline-flex items-center gap-1.5 text-xs font-medium uppercase">
                       <component :is="statusIcon(sub.status_gateway || sub.status)" class="w-3 h-3" />

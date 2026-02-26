@@ -19,3 +19,6 @@ Schedule::call(function () {
         }
     });
 })->dailyAt('01:00');
+
+// Automatically process pending or failed Asaas webhooks every minute
+Schedule::command('asaas:process-events')->everyMinute();
